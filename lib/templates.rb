@@ -6,8 +6,10 @@ module Henchman
 
     def self.config
       yml = {
-              :dropbox => {:username => '',
-                           :password => '',
+              :dropbox => {:key => '',
+                           :secret => '',
+                           :access_token => '',
+                           :user_id => '',
                            :root     => ''},
               :root => '',
               :poll_itunes_open => 10,
