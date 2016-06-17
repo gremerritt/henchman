@@ -1,5 +1,5 @@
 require "henchman/version"
-require "templates"
+require "configure"
 require "commander/import"
 require "yaml"
 
@@ -26,13 +26,7 @@ module Henchman
       c.syntax = 'henchman configure'
       c.description = 'Configures the henchman client'
       c.action do |args, options|
-        config_file = File.expand_path('~/.henchman')
-        if !File.exists?(config_file)
-          config = Henchman::Templates.config
-        else
-          config = YAML.load_file(config_file)
-        end
-        puts config
+        Henchman.configure
       end
     end
 
