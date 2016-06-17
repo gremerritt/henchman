@@ -1,5 +1,7 @@
 require "henchman/version"
 
 module Henchman
-  # Your code goes here...
+  def Henchman.run
+    puts 'Hello World!'
+  end
 end
