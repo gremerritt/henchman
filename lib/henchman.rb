@@ -1,5 +1,6 @@
 require "henchman/version"
 require "configure"
+require "launchd_handler"
 require "commander/import"
 require "yaml"
 
@@ -13,12 +14,7 @@ module Henchman
       c.syntax = 'henchman start'
       c.description = 'Starts the henchman daemon'
       c.action do |args, options|
-        if !File.exists?(File.expand_path('~/.henchman'))
-          say 'Configuration file is missing.'
-          say 'Run `henchman configure` to setup the henchman client.'
-          next
-        end
-        say 'HERE'
+        Henchman::LaunchdHandler.start
       end
     end
 

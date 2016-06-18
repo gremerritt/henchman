@@ -24,27 +24,40 @@ module Henchman
       end
     end
 
-    begin
-      client = DropboxClient.new(config[:dropbox][:access_token])
-      account_info = client.account_info()
-      puts "Successfully connected to Dropbox: "
-      puts "  #{account_info['display_name']} [#{account_info['email']}]"
-    rescue StandardError => err
-      puts "Error connecting to Dropbox account (#{err}). Try deleting the "\
-           "henchman configuration file (`rm ~/.henchman`) and rerunning"\
-           "`henchman configure`"
-      return
-    end
+    client = connect config
+    return if !client
 
-    if config[:dropbox][:root].empty? || agree()
+    if config[:dropbox][:root].empty? || agree("\nUpdate music directory in Dropbox? (y/n) ")
       get_dropbox_root config, client
     end
 
+    if config[:root].empty? || agree("\nUpdate local music directory? (y/n) ")
+      get_local_root config
+    end
+
     File.open(config_file, "w") { |f| f.write( config.to_yaml ) }
+    puts "\nConfiguration complete! Run `henchman start` to start the daemon."
+  end
+
+  def self.connect config={}
+    begin
+      config = YAML.load_file(config_file) if config.empty?
+      # client = DropboxClient.new(config[:dropbox][:access_token])
+      client = DropboxClient.new("dlbafnrj")
+      account_info = client.account_info()
+      puts "\nSuccessfully connected to Dropbox: "
+      puts "  #{account_info['display_name']} [#{account_info['email']}]"
+      return client
+    rescue StandardError => err
+      puts "\nError connecting to Dropbox account (#{err}). Try deleting the "\
+           "henchman configuration file (`rm ~/.henchman`) and rerunning "\
+           "`henchman configure`"
+      return false
+    end
   end
 
   def self.get_dropbox_credentials config
-    puts "You'll need to create your own Dropbox app to integrate. "\
+    puts "\nYou'll need to create your own Dropbox app to integrate. "\
          "Head over to https://www.dropbox.com/developers/apps. If "\
          "you have an app already that you'd like to use, click on "\
          "that app. If not, click on the 'Create App' link. From "\
@@ -77,22 +90,22 @@ module Henchman
     end
   end
 
-  def self.get_dropbox_root(config, client)
+  def self.get_dropbox_root config, client
     # paths = Hash.new
     # build_dropbox_dirs(paths, client, '/', 0)
     not_done = true
     while not_done
-      path = ask("Enter the path to your music directory in Dropbox: (? for help)" )
+      path = ask("\nEnter the path to your music directory in Dropbox: (? for help)" )
       if path == '?'
         puts "The path to your music directory is a unix-like path. For example: "\
-             "/Some/Directory/Music"
+             "/Some/Directory/Music\n"
         next
       end
 
       begin
         metadata = client.metadata(path.chomp!('/'))
         config[:dropbox][:root] = path
-        puts "Valid path!"
+        puts "Dropbox music path set!\n"
         not_done = false
       rescue StandardError => err
         print "Invalid path. "
@@ -101,7 +114,7 @@ module Henchman
     end
   end
 
-  # def self.build_dropbox_dirs(paths, client, path, level)
+  # def self.build_dropbox_dirs paths, client, path, level
   #   return if level == 2
   #   metadata = client.metadata(path)
   #   metadata['contents'].each do |elem|
@@ -110,4 +123,32 @@ module Henchman
   #     build_dropbox_dirs(paths[elem['path']], client, elem['path'], level+1)
   #   end
   # end
+
+  def self.get_local_root config
+    not_done = true
+    while not_done
+      path = ask("Enter the path to your local music directory: (? for help)" )
+      if path == '?'
+        puts "This is the directory in which local music files will be stored. "\
+             "For example: /Users/yourusernam/Music\n"
+        next
+      end
+
+      path = File.expand_path(path.chomp('/'))
+      if File.directory? path
+        config[:root] = path
+        puts "Local music path set!\n"
+        not_done = false
+      elsif File.directory? File.dirname(path)
+        if agree("Directory doesn't exist. Create it? (y/n) ")
+          Dir.mkdir(path)
+          config[:root] = path
+          puts "Local music path set!\n"
+          not_done = false
+        end
+      else
+        puts "Invalid path."
+      end
+    end
+  end
 end
