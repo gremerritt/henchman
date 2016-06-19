@@ -3,13 +3,14 @@ module Henchman
   class AppleScript
 
     def initialize(config)
+      @@delimiter = config[:delimiter]
       @@script_get_selection = "tell application \"iTunes\"\n
                                   try\n
                                     if class of selection as string is \"file track\" then\n
                                       set data_artist to artist of selection as string\n
                                       set data_album to album of selection as string\n
                                       set data_title to name of selection as string\n
-                                      set str to data_artist & \"#{config[:delimiter]}\" & data_album & \"#{config[:delimiter]}\" & data_title\n
+                                      set str to data_artist & \"#{@@delimiter}\" & data_album & \"#{@@delimiter}\" & data_title\n
                                       --display dialog location of selection as string\n
                                       return str\n
                                     end if\n
@@ -30,7 +31,7 @@ module Henchman
                                         try\n
                                           set data_tracks to (every track whose artist is \"{ITUNES_ARTIST}\" and album is \"{ITUNES_ALBUM}\" and name is \"{ITUNES_NAME}\")\n
                                           if (count of data_tracks) is 1 then\n
-                                            set location of (item 1 of data_tracks) to \"Macintosh HD#{machine_root.gsub("/", ":")}:{LOCAL_ARTIST}:{LOCAL_ALBUM}:{LOCAL_NAME}\"\n
+                                            set location of (item 1 of data_tracks) to \"Macintosh HD#{config[:root].gsub("/", ":")}:{LOCAL_ARTIST}:{LOCAL_ALBUM}:{LOCAL_NAME}\"\n
                                             return 1\n
                                           else\n
                                             return 0\n
@@ -42,12 +43,12 @@ module Henchman
     end
 
     def applescript_command(script)
-      return "osascript -e '#{script}'"
+      "osascript -e '#{script}' 2> /dev/null"
     end
 
     def get_selection ret
       selection = %x( #{applescript_command(@@script_get_selection)} ).chomp
-      info = selection.split(delim)
+      info = selection.split(@@delimiter)
       if info.length == 3
         ret[:artist] = info[0]
         ret[:album]  = info[1]
@@ -59,11 +60,11 @@ module Henchman
     end
 
     def fetch_prompt
-      return %x( #{applescript_command(@@script_prompt)} ).chomp
+      %x( #{applescript_command(@@script_prompt)} ).chomp
     end
 
     def get_active_app
-      return %x( #{applescript_command(@@script_get_active_app)} ).chomp
+      %x( #{applescript_command(@@script_get_active_app)} ).chomp
     end
 
     def set_track_location

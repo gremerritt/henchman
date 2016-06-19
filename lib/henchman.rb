@@ -1,6 +1,7 @@
 require "henchman/version"
 require "configure"
 require "launchd_handler"
+require "core"
 require "commander/import"
 require "yaml"
 

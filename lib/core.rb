@@ -1,6 +1,6 @@
 require "dropbox.rb"
 require "applescript.rb"
-requier "yaml"
+require "yaml"
 
 module Henchman
 
@@ -14,20 +14,15 @@ module Henchman
         puts "Error opening config file. Try rerunning `henchman configure`"
         return
       end
-
-      delim = "|~|"
-      delay_minutes = 5
-      delay = delay_minutes * 60
-      dbx_root = '/Music'
-      machine_root = File.expand_path('~/Desktop/Music')
-
+      
       appleScript = Henchman::AppleScript.new(config)
       dbx = Henchman::DropboxAssistant.new(config, appleScript)
       dbx.connect
 
-      artists = %x( ls #{machine_root} ).split("\n")
+      artists = %x( ls #{config[:root]} ).split("\n")
 
       ignore = Hash.new
+      ignore.default = 0
 
       while itunes_is_active? appleScript
         puts "ignore list:"
@@ -39,9 +34,7 @@ module Henchman
         unless !track_selected
           puts info.to_s
 
-          if (!ignore.include? info[:artist] ||
-               ignore[info[:artist]] < Time.now.to_i - config[:reprompt_timeout]) &&
-               !artists.include? info[:artist]
+          if ignore[info[:artist]] < Time.now.to_i - config[:reprompt_timeout]
             ignore.delete(info[:artist])
             fetch = appleScript.fetch_prompt == "button returned:OK" ? true : false
             if fetch
