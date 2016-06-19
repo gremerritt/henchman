@@ -38,7 +38,7 @@ module Henchman
       c.syntax = 'henchman run'
       c.description = 'Main interface into henchman. Should not be ran manually.'
       c.action do |args, options|
-        puts "Hello World!"
+        Henchman::Core.run
       end
     end
 

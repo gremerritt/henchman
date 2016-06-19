@@ -39,7 +39,8 @@ module Henchman
               :root => '',
               :poll_itunes_open => 10,
               :poll_track => 3,
-              :reprompt_timeout => 300
+              :reprompt_timeout => 300,
+              :delimiter => '|~|'
             }
     end
   end
