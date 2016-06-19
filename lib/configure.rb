@@ -5,7 +5,7 @@ require "json"
 
 module Henchman
   def self.configure
-    config_file = File.expand_path('~/.henchman')
+    config_file = File.expand_path('~/.henchman/config')
     if !File.exists?(config_file)
       config = Henchman::Templates.config
     else
@@ -34,22 +34,22 @@ module Henchman
     if config[:root].empty? || agree("\nUpdate local music directory? (y/n) ")
       get_local_root config
     end
-
+    
+    Dir.mkdir(File.dirname(config_file)) if !File.exists?(File.dirname(config_file))
     File.open(config_file, "w") { |f| f.write( config.to_yaml ) }
     puts "\nConfiguration complete! Run `henchman start` to start the daemon."
   end
 
   def self.connect config={}
     begin
-      config = YAML.load_file(config_file) if config.empty?
-      # client = DropboxClient.new(config[:dropbox][:access_token])
-      client = DropboxClient.new("dlbafnrj")
+      config = YAML.load_file(File.expand_path("~/.henchman/config")) if config.empty?
+      client = DropboxClient.new(config[:dropbox][:access_token])
       account_info = client.account_info()
-      puts "\nSuccessfully connected to Dropbox: "
+      puts "Successfully connected to Dropbox: "
       puts "  #{account_info['display_name']} [#{account_info['email']}]"
       return client
     rescue StandardError => err
-      puts "\nError connecting to Dropbox account (#{err}). Try deleting the "\
+      puts "Error connecting to Dropbox account (#{err}). Try deleting the "\
            "henchman configuration file (`rm ~/.henchman`) and rerunning "\
            "`henchman configure`"
       return false
@@ -80,7 +80,7 @@ module Henchman
     puts '3. Copy the authorization code'
 
     code = ask("Enter the authorization code here: ")
-
+    print "\n"
     begin
       dbx_cfg[:access_token], dbx_cfg[:user_id] = flow.finish(code)
     rescue StandardError => msg
@@ -95,20 +95,21 @@ module Henchman
     # build_dropbox_dirs(paths, client, '/', 0)
     not_done = true
     while not_done
-      path = ask("\nEnter the path to your music directory in Dropbox: (? for help)" )
+      path = ask("Enter the path to your music directory in Dropbox: (? for help)" )
       if path == '?'
         puts "The path to your music directory is a unix-like path. For example: "\
-             "/Some/Directory/Music\n"
+             "/Some/Directory/Music\n\n"
         next
       end
 
+      path = path.chomp('/')
       begin
-        metadata = client.metadata(path.chomp!('/'))
+        metadata = client.metadata(path)
         config[:dropbox][:root] = path
         puts "Dropbox music path set!\n"
         not_done = false
       rescue StandardError => err
-        print "Invalid path. "
+        print "Invalid path. (#{err})"
         not_done = agree("Try again? (y/n) ")
       end
     end
@@ -130,7 +131,7 @@ module Henchman
       path = ask("Enter the path to your local music directory: (? for help)" )
       if path == '?'
         puts "This is the directory in which local music files will be stored. "\
-             "For example: /Users/yourusernam/Music\n"
+             "For example: /Users/yourusernam/Music\n\n"
         next
       end
 
