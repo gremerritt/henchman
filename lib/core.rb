@@ -7,24 +7,28 @@ module Henchman
   class Core
 
     def self.run
-      config_file = File.expand_path('~/.henchman/config')
-      begin
-        config = YAML.load_file(config_file)
-      rescue StandardError => err
-        puts "Error opening config file. Try rerunning `henchman configure`"
-        return
-      end
-      
-      appleScript = Henchman::AppleScript.new(config)
-      dbx = Henchman::DropboxAssistant.new(config, appleScript)
-      dbx.connect
-
-      artists = %x( ls #{config[:root]} ).split("\n")
-
-      ignore = Hash.new
-      ignore.default = 0
+      appleScript = Henchman::AppleScript.new
+      puts 'henchman'
 
       while itunes_is_active? appleScript
+        puts 'itunes open'
+        config_file = File.expand_path('~/.henchman/config')
+        begin
+          config = YAML.load_file(config_file)
+        rescue StandardError => err
+          puts "Error opening config file. Try rerunning `henchman configure`"
+          return
+        end
+
+        appleScript.setup config
+        dbx = Henchman::DropboxAssistant.new config, appleScript
+        dbx.connect
+
+        artists = %x( ls #{config[:root]} ).split("\n")
+
+        ignore = Hash.new
+        ignore.default = 0
+
         puts "ignore list:"
         puts ignore.to_s
 

@@ -2,7 +2,14 @@ module Henchman
 
   class AppleScript
 
-    def initialize(config)
+    def initialize
+      @@script_get_active_app = "tell application \"System Events\"\n
+  	                               set activeApp to name of first application process whose frontmost is true\n
+  	                               return activeApp\n
+                                 end tell"
+    end
+
+    def setup config
       @@delimiter = config[:delimiter]
       @@script_get_selection = "tell application \"iTunes\"\n
                                   try\n
@@ -21,12 +28,6 @@ module Henchman
       @@script_prompt = "tell application \"iTunes\"\n
                            display dialog \"Fetch?\"\n
                          end tell"
-
-      @@script_get_active_app = "tell application \"System Events\"\n
-  	                             set activeApp to name of first application process whose frontmost is true\n
-  	                             return activeApp\n
-                                 end tell"
-
       @@update_track_location_temp = "tell application \"iTunes\"\n
                                         try\n
                                           set data_tracks to (every track whose artist is \"{ITUNES_ARTIST}\" and album is \"{ITUNES_ALBUM}\" and name is \"{ITUNES_NAME}\")\n
