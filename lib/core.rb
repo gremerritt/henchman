@@ -7,10 +7,9 @@ module Henchman
   class Core
 
     def self.run
-      appleScript = Henchman::AppleScript.new
-      puts 'henchman'
+      @appleScript = Henchman::AppleScript.new
 
-      while itunes_is_active? appleScript
+      while itunes_is_active?
         puts 'itunes open'
         config_file = File.expand_path('~/.henchman/config')
         begin
@@ -20,9 +19,12 @@ module Henchman
           return
         end
 
-        appleScript.setup config
-        dbx = Henchman::DropboxAssistant.new config, appleScript
-        dbx.connect
+        @appleScript.setup config
+        begin
+          @dropbox = Henchman::DropboxAssistant.new config, @appleScript
+        rescue
+          return
+        end
 
         artists = %x( ls #{config[:root]} ).split("\n")
 
@@ -32,45 +34,43 @@ module Henchman
         puts "ignore list:"
         puts ignore.to_s
 
-        info = Hash.new
-        track_selected = appleScript.get_selection(info)
+        selection = Hash.new
+        track_selected = @appleScript.get_selection selection
 
-        unless !track_selected
-          puts info.to_s
+        if track_selected && ignore[selection[:artist]] < (Time.now.to_i - config[:reprompt_timeout])
+          ignore.delete selection[:artist]
+          if @appleScript.fetch?
+            puts "fetching!"
+            puts @dropbox.search selection
+            next
 
-          if ignore[info[:artist]] < Time.now.to_i - config[:reprompt_timeout]
-            ignore.delete(info[:artist])
-            fetch = appleScript.fetch_prompt == "button returned:OK" ? true : false
-            if fetch
-              puts "fetching!"
-              tracks = dbx.get_tracks(info[:artist], info[:album])
-              index = -1
-              tracks.each_with_index do |dbx_track, dbx_track_index|
-                if dbx_track.downcase.include? info[:track].downcase
-                  puts "Found ""#{dbx_track}"""
-                  index = dbx_track_index
-                  break
-                end
+            tracks = @dropbox.get_tracks(selection[:artist], selection[:album])
+            index = -1
+            tracks.each_with_index do |dbx_track, dbx_track_index|
+              if dbx_track.downcase.include? info[:track].downcase
+                puts "Found ""#{dbx_track}"""
+                index = dbx_track_index
+                break
               end
-
-              if index >= 0
-                puts "downloading track..."
-                dbx.download_single_track(info[:artist], info[:album], tracks[index])
-                t = Thread.new{ dbx.download_album(info[:artist], info[:album], tracks, index) }
-                puts "done!"
-              end
-            else
-              puts "not fetching..."
-              ignore[info[:artist]] = Time.now.to_i
             end
+
+            if index >= 0
+              puts "downloading track..."
+              @dropbox.download_single_track(selection[:artist], selection[:album], tracks[index])
+              t = Thread.new{ @dropbox.download_album(selection[:artist], selection[:album], tracks, index) }
+              puts "done!"
+            end
+          else
+            puts "not fetching..."
+            ignore[selection[:artist]] = Time.now.to_i
           end
         end
         sleep config[:poll_track]
       end
     end
 
-    def self.itunes_is_active? appleScript
-      appleScript.get_active_app == 'iTunes'
+    def self.itunes_is_active?
+      @appleScript.get_active_app == 'iTunes'
     end
 
   end
