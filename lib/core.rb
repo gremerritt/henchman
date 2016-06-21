@@ -9,11 +9,19 @@ module Henchman
     def self.run
       @appleScript = Henchman::AppleScript.new
 
+      begin
+        cache_file = File.expand_path("~/.henchman/cache")
+        @ignore = YAML.load_file(cache_file)
+      rescue StandardError => err
+        puts "Error opening cache file (#{err})"
+        @ignore = Hash.new
+      end
+      @ignore.default = 0
+      update_cache = false
+
       while itunes_is_active?
-        puts 'itunes open'
-        config_file = File.expand_path('~/.henchman/config')
         begin
-          config = YAML.load_file(config_file)
+          config = YAML.load_file(File.expand_path('~/.henchman/config'))
         rescue StandardError => err
           puts "Error opening config file. Try rerunning `henchman configure`"
           return
@@ -28,17 +36,15 @@ module Henchman
 
         artists = %x( ls #{config[:root]} ).split("\n")
 
-        ignore = Hash.new
-        ignore.default = 0
-
         puts "ignore list:"
-        puts ignore.to_s
+        puts @ignore.to_s
 
         selection = Hash.new
         track_selected = @appleScript.get_selection selection
 
-        if track_selected && ignore[selection[:artist]] < (Time.now.to_i - config[:reprompt_timeout])
-          ignore.delete selection[:artist]
+        if track_selected && @ignore[selection[:artist]] < (Time.now.to_i - config[:reprompt_timeout])
+          update_cache = true
+          @ignore.delete selection[:artist]
           if @appleScript.fetch?
             puts "fetching!"
             puts @dropbox.search selection
@@ -62,11 +68,13 @@ module Henchman
             end
           else
             puts "not fetching..."
-            ignore[selection[:artist]] = Time.now.to_i
+            @ignore[selection[:artist]] = Time.now.to_i
           end
         end
         sleep config[:poll_track]
       end
+
+      File.open(cache_file, "w") { |f| f.write( @ignore.to_yaml ) } if update_cache
     end
 
     def self.itunes_is_active?

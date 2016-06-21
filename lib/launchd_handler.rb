@@ -17,8 +17,10 @@ module Henchman
       plist      = Henchman::Templates.plist
       plist_path = File.expand_path("~/Library/LaunchAgents/com.henchman.plist")
       shell_script_path = File.expand_path("~/.henchman/run.sh")
+      cache_path        = File.expand_path("~/.henchman/cache")
       File.write(plist_path, plist)
       File.write(shell_script_path, Henchman::Templates.shell_script)
+      File.open(cache_path, "w") { |f| f.write( {}.to_yaml ) }
 
       puts "Launching agent"
       `chmod +x #{shell_script_path}`
@@ -33,6 +35,7 @@ module Henchman
       `launchctl unload #{plist_path}`
       `rm #{plist_path}`
       `rm #{File.expand_path("~/.henchman/run.sh")}`
+      `rm #{File.expand_path("~/.henchman/cache")}`
       `rm #{File.expand_path("~/.henchman/stdout.log")}`
       `rm #{File.expand_path("~/.henchman/stderr.log")}`
 
