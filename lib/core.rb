@@ -17,6 +17,8 @@ module Henchman
         @ignore = Hash.new
       end
       @ignore.default = 0
+
+      threads = []
       update_cache = false
 
       while itunes_is_active?
@@ -29,7 +31,7 @@ module Henchman
 
         @appleScript.setup config
         begin
-          @dropbox = Henchman::DropboxAssistant.new config, @appleScript
+          @dropbox = Henchman::DropboxAssistant.new config
         rescue
           puts "Error connecting to Dropbox. Try rerunning `henchman configure`"
           return
@@ -44,29 +46,28 @@ module Henchman
           if @appleScript.fetch?
             puts "searching"
             begin
-              puts @dropbox.search selection
-              puts @appleScript.get_album_tracks selection
+              # first download the selected track
+              dropbox_path   = @dropbox.search_for selection
+              file_save_path = @dropbox.download selection, dropbox_path
+
+              # if we downloaded it, update the location of the track in iTunes
+              unless !file_save_path
+                updated = @appleScript.set_track_location selection, file_save_path
+                # if the update failed, cleanup that directory and don't bother
+                # doing the rest of the album
+                if !updated
+                  cleanup file_save_path
+                  next
+                end
+
+                # now that we've gotten the selected track, spawn off another process
+                # to download the rest of the tracks on the album - spatial locality FTW
+                album_tracks = @appleScript.get_album_tracks_of selection
+                threads << Thread.new{ download_album_tracks selection, album_tracks }
+              end
             rescue StandardError => err
               puts err
               next
-            end
-            next
-
-            tracks = @dropbox.get_tracks(selection[:artist], selection[:album])
-            index = -1
-            tracks.each_with_index do |dbx_track, dbx_track_index|
-              if dbx_track.downcase.include? info[:track].downcase
-                puts "Found ""#{dbx_track}"""
-                index = dbx_track_index
-                break
-              end
-            end
-
-            if index >= 0
-              puts "downloading track..."
-              @dropbox.download_single_track(selection[:artist], selection[:album], tracks[index])
-              t = Thread.new{ @dropbox.download_album(selection[:artist], selection[:album], tracks, index) }
-              puts "done!"
             end
           else
             @ignore[selection[:artist]] = Time.now.to_i
@@ -75,11 +76,40 @@ module Henchman
         sleep config[:poll_track]
       end
 
+      threads.each { |thr| thr.join }
       File.open(cache_file, "w") { |f| f.write( @ignore.to_yaml ) } if update_cache
     end
 
     def self.itunes_is_active?
       @appleScript.get_active_app == 'iTunes'
+    end
+
+    def self.download_album_tracks selection, album_tracks
+      album_tracks.each do |album_track|
+        selection[:track] = album_track
+        begin
+          # first download the selected track
+          dropbox_path   = @dropbox.search_for selection
+          file_save_path = @dropbox.download selection, dropbox_path
+
+          # if we downloaded it, update the location of the track in iTunes
+          unless !file_save_path
+            updated = @appleScript.set_track_location selection, file_save_path
+            # if the update failed, remove that file
+            if !updated
+              cleanup file_save_path, false
+              next
+            end
+          end
+        rescue StandardError => err
+          puts err
+          next
+        end
+      end
+    end
+
+    def self.cleanup file_save_path, recursive = true
+      puts "Cleaning up #{file_save_path} (#{recursive})"
     end
 
   end

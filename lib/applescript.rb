@@ -23,12 +23,12 @@ module Henchman
       "tell application \"iTunes\"\n"\
       "  try\n"\
       "    set data_tracks to "\
-      "      (every track whose artist is \"#{selection[:artist]}\" and "\
-      "                         album  is \"#{selection[:album]}\"  and "\
-      "                         name   is \"#{selection[:track]}\")\n"
+      "      (every track whose artist is \"#{selection[:artist].gsub(/'/){ %q('"'"') }}\" and "\
+      "                         album  is \"#{selection[:album].gsub(/'/){ %q('"'"') }}\"  and "\
+      "                         name   is \"#{selection[:track].gsub(/'/){ %q('"'"') }}\")\n"\
       "    if (count of data_tracks) is 1 then\n"\
       "      set location of (item 1 of data_tracks) to "\
-      "        (POSIX file \"#{local_file}\")\n"\
+      "        (POSIX file \"#{local_file.gsub(/'/){ %q('"'"') }}\")\n"\
       "      return 1\n"\
       "    else\n"\
       "      return 0\n"\
@@ -98,7 +98,7 @@ module Henchman
       end
     end
 
-    def get_album_tracks selection
+    def get_album_tracks_of selection
       artist = selection[:artist]
       album  = selection[:album]
       tracks = %x(#{applescript_command(get_album_tracks_script artist, album)}).chomp
@@ -115,9 +115,14 @@ module Henchman
       %x(#{applescript_command(get_active_app_script)}).chomp
     end
 
-    def set_track_location
+    def set_track_location selection, local_file
       ret = %x(#{applescript_command(update_track_location_script selection, local_file)}).chomp
-      puts update_track_location
+      if ret.empty? || ret == '0'
+        puts "Could not update location of #{selection.values.join(':')} to #{local_file}"
+        false
+      else
+        true
+      end
     end
 
   end

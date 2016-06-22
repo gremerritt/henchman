@@ -6,10 +6,9 @@ module Henchman
 
   class DropboxAssistant
 
-    def initialize config, appleScript
+    def initialize config
       begin
         @config = config
-        @appleScript = appleScript
         @client = DropboxClient.new(@config[:dropbox][:access_token])
         true
       rescue DropboxError => msg
@@ -20,41 +19,30 @@ module Henchman
       end
     end
 
-    def get_tracks(artist, album)
-      tracks = Array.new
-      begin
-        metadata = @client.metadata("#{@config[:dropbox][:root]}/#{artist}/#{album}")
-        metadata['contents'].each { |track| tracks.push( (track['path'].split('/'))[-1] ) }
-      rescue DropboxError => msg
-        puts msg
-      end
-      tracks
-    end
-
-    def download_single_track(artist, album, track)
-      puts "downloading #{track}"
+    def download selection, dropbox_path
+      puts "downloading #{selection[:track]}"
       begin
         # download the file
-        content = @client.get_file("#{@config[:dropbox][:root]}/#{artist}/#{album}/#{track}")
+        content = @client.get_file(dropbox_path)
 
         # make sure we have the directory to put it in
-        system 'mkdir', '-p', "#{@config[:root]}/#{artist}/#{album}"
+        trgt_dir = File.join @config[:root], selection[:artist], selection[:album]
+        system 'mkdir', '-p', trgt_dir
 
         # save the file
-        open(File.expand_path("#{@config[:root]}/#{artist}/#{album}/#{track}"), 'w') {|f| f.puts content }
-        true
+        file_save_path = File.join trgt_dir, File.basename(dropbox_path)
+        open(file_save_path, 'w') {|f| f.puts content }
+        file_save_path
       rescue DropboxError => msg
-        puts msg
+        puts "Error downloading Dropbox file #{dropbox_path}: #{msg}"
+        false
+      rescue StandardError => msg
+        puts "Error saving Dropbox file #{dropbox_path} to #{trgt_dir}: #{msg}"
         false
       end
     end
 
-    # this downloads the whole album, except the skip track
-    def download_album(artist, album, tracks, skip_track_index = nil)
-      tracks.each_with_index { |track, index| download_single_track(artist, album, track) unless index == skip_track_index }
-    end
-
-    def search selection
+    def search_for selection
       # search Dropbox for the file
 
       results = @client.search(@config[:dropbox][:root], selection[:track])
