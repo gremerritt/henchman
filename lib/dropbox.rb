@@ -73,14 +73,16 @@ module Henchman
       # if there are multiple results, score them based on artist + album
       else
         scores = Hash.new 0
-        selection[:artist].downcase.split(/[^a-z0-9]/i).each do |token|
-          results.each do |result|
-            scores[result['path']] += 1 if result['path'].downcase.include? token
+        results.each do |result|
+          [:artist, :album].each do |identifier|
+            selection[identifier].downcase.split(/[^a-z0-9]/i).each do |token|
+              scores[result['path']] += 1 if result['path'].downcase.include? token
+            end
           end
         end
 
         # return the path that has the highest score
-        return (scores.sort_by { |path, score| score })[-1][1]
+        (scores.sort_by { |path, score| score })[-1][0]
       end
     end
 

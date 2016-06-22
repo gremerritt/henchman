@@ -31,13 +31,9 @@ module Henchman
         begin
           @dropbox = Henchman::DropboxAssistant.new config, @appleScript
         rescue
+          puts "Error connecting to Dropbox. Try rerunning `henchman configure`"
           return
         end
-
-        artists = %x( ls #{config[:root]} ).split("\n")
-
-        puts "ignore list:"
-        puts @ignore.to_s
 
         selection = Hash.new
         track_selected = @appleScript.get_selection selection
@@ -46,8 +42,14 @@ module Henchman
           update_cache = true
           @ignore.delete selection[:artist]
           if @appleScript.fetch?
-            puts "fetching!"
-            puts @dropbox.search selection
+            puts "searching"
+            begin
+              puts @dropbox.search selection
+              puts @appleScript.get_album_tracks selection
+            rescue StandardError => err
+              puts err
+              next
+            end
             next
 
             tracks = @dropbox.get_tracks(selection[:artist], selection[:album])
@@ -67,7 +69,6 @@ module Henchman
               puts "done!"
             end
           else
-            puts "not fetching..."
             @ignore[selection[:artist]] = Time.now.to_i
           end
         end

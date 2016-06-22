@@ -50,6 +50,26 @@ module Henchman
                                     "end tell"
     end
 
+    def get_album_tracks_script artist, album
+      "tell application \"iTunes\"\n"\
+      "  try\n"\
+      "    set data_tracks to "\
+      "        (every track whose artist is \"#{artist}\" "\
+      "                        and album is \"#{album}\")\n"\
+      "    set data_tracks_str to \"\"\n"\
+      "    repeat with data_track in data_tracks\n"\
+      "      set data_tracks_str to data_tracks_str & (name of data_track) as string\n"\
+			"      if (name of (last item of data_tracks)) is not (name of data_track) then\n"\
+			"        set data_tracks_str to data_tracks_str & \"#{@delimiter}\"\n"\
+			"      end if\n"\
+      "    end repeat\n"\
+      "    return data_tracks_str\n"\
+      "  on error\n"\
+      "    return 0\n"\
+      "  end try\n"\
+      "end tell"
+    end
+
     def applescript_command(script)
       "osascript -e '#{script}' 2> /dev/null"
     end
@@ -57,7 +77,6 @@ module Henchman
     def get_selection ret
       selection = %x( #{applescript_command(@script_get_selection)} ).chomp
       info = selection.split(@delimiter)
-      puts info.inspect
       if info.empty?
         false
       elsif info[3] == "/missing value" || !File.exists?(info[3])
@@ -68,6 +87,15 @@ module Henchman
       else
         false
       end
+    end
+
+    def get_album_tracks selection
+      artist = selection[:artist]
+      album  = selection[:album]
+      tracks = %x( #{applescript_command(get_album_tracks_script artist, album)} ).chomp
+      tracks = tracks.split(@delimiter)
+      tracks.delete selection[:track]
+      tracks
     end
 
     def fetch?
