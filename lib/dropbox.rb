@@ -44,11 +44,17 @@ module Henchman
 
     def search_for selection
       # search Dropbox for the file
-
       results = @client.search(@config[:dropbox][:root], selection[:track])
 
       # get rid of any results that are directories
       results.reject! { |result| result['is_dir'] }
+
+      # if we still don't have any results, try dropping any brackets and paranthesis
+      if results.empty? && (selection[:track].match(%r( *\[.*\] *)) || selection[:track].match(%r( *\(.*\) *)))
+        track = selection[:track].gsub(%r( *\[.*\] *), " ").gsub(%r( *\(.*\) *), " ")
+        results = @client.search(@config[:dropbox][:root], track)
+        results.reject! { |result| result['is_dir'] }
+      end
 
       # if there were no results, raise err
       if results.empty?
@@ -63,7 +69,12 @@ module Henchman
         scores = Hash.new 0
         results.each do |result|
           [:artist, :album].each do |identifier|
-            selection[identifier].downcase.split(/[^a-z0-9]/i).each do |token|
+            tokens = selection[identifier].downcase
+                                          .gsub(%r( +), " ")
+                                          .gsub(%r(-+), "-")
+                                          .strip
+                                          .split(/[\s-]/)
+            tokens.each do |token|
               scores[result['path']] += 1 if result['path'].downcase.include? token
             end
           end
