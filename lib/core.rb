@@ -23,15 +23,15 @@ module Henchman
 
       while itunes_is_active?
         begin
-          config = YAML.load_file(File.expand_path('~/.henchman/config'))
+          @config = YAML.load_file(File.expand_path('~/.henchman/config'))
         rescue StandardError => err
           puts "Error opening config file. Try rerunning `henchman configure`"
           return
         end
 
-        @appleScript.setup config
+        @appleScript.setup @config
         begin
-          @dropbox = Henchman::DropboxAssistant.new config
+          @dropbox = Henchman::DropboxAssistant.new @config
         rescue
           puts "Error connecting to Dropbox. Try rerunning `henchman configure`"
           return
@@ -40,7 +40,7 @@ module Henchman
         selection = Hash.new
         track_selected = @appleScript.get_selection selection
 
-        if track_selected && @ignore[selection[:artist]] < (Time.now.to_i - config[:reprompt_timeout])
+        if track_selected && @ignore[selection[:artist]] < (Time.now.to_i - @config[:reprompt_timeout])
           update_cache = true
           @ignore.delete selection[:artist]
           if @appleScript.fetch?
@@ -73,7 +73,7 @@ module Henchman
             @ignore[selection[:artist]] = Time.now.to_i
           end
         end
-        sleep config[:poll_track]
+        sleep @config[:poll_track]
       end
 
       threads.each { |thr| thr.join }
@@ -97,7 +97,7 @@ module Henchman
             updated = @appleScript.set_track_location selection, file_save_path
             # if the update failed, remove that file
             if !updated
-              cleanup file_save_path, false
+              cleanup file_save_path
               next
             end
           end
@@ -108,8 +108,16 @@ module Henchman
       end
     end
 
-    def self.cleanup file_save_path, recursive = true
-      puts "Cleaning up #{file_save_path} (#{recursive})"
+    def self.cleanup file_save_path
+      File.delete file_save_path
+      while File.dirname(file_save_path) != @config[:root]
+        file_save_path = File.dirname(file_save_path)
+        begin
+          Dir.rmdir(file_save_path)
+        rescue SystemCallError => msg
+          break
+        end
+      end
     end
 
   end
