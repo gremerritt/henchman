@@ -44,7 +44,11 @@ module Henchman
 
     def search_for selection
       # search Dropbox for the file
-      results = @client.search(@config[:dropbox][:root], selection[:track])
+      begin
+        results = @client.search(@config[:dropbox][:root], selection[:track])
+      rescue DropboxError => msg
+        raise "Error accessing Dropbox Search API on #{selection.values.join(':')}: #{msg}"
+      end
 
       # get rid of any results that are directories
       results.reject! { |result| result['is_dir'] }
