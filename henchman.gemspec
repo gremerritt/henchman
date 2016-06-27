@@ -4,7 +4,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'henchman/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "henchman"
+  spec.name          = "henchman-sync"
   spec.version       = Henchman::VERSION
   spec.authors       = ["Greg Merritt"]
   spec.email         = ["gremerritt@gmail.com"]
