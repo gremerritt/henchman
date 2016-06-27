@@ -66,10 +66,11 @@ module Henchman
       "                        and album is \"#{album}\")\n"\
       "    set data_tracks_str to \"\"\n"\
       "    repeat with data_track in data_tracks\n"\
-      "      set data_tracks_str to data_tracks_str & (name of data_track) as string\n"\
-			"      if (name of (last item of data_tracks)) is not (name of data_track) then\n"\
-			"        set data_tracks_str to data_tracks_str & \"#{@delimiter}\"\n"\
-			"      end if\n"\
+      "      if (location of data_track) as string is equal to \"missing value\" then\n"\
+      "        set data_tracks_str to data_tracks_str & (name of data_track) as string "\
+      "                   & \"#{@delimiter}\" & (database ID of data_track) as string "\
+			"                   & \"#{@delimiter*2}\"\n"\
+      "      end if\n"\
       "    end repeat\n"\
       "    return data_tracks_str\n"\
       "  on error\n"\
@@ -101,9 +102,16 @@ module Henchman
     def get_album_tracks_of selection
       artist = selection[:artist]
       album  = selection[:album]
-      tracks = %x(#{applescript_command(get_album_tracks_script artist, album)}).chomp
-      tracks = tracks.split(@delimiter)
-      tracks.delete selection[:track]
+      tracks = Array.new
+      tmp_tracks = %x(#{applescript_command(get_album_tracks_script artist, album)}).chomp
+      tmp_tracks = tmp_tracks.split @delimiter*2
+      tmp_tracks.each_with_index do |track, index|
+        next if track.empty?
+        track_and_id = track.split @delimiter
+        next if track_and_id[1] == selection[:id] ||
+        tracks.push( {:track => track_and_id[0],
+                     :id    => track_and_id[1]} )
+      end
       tracks
     end
 

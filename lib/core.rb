@@ -86,7 +86,8 @@ module Henchman
 
     def self.download_album_tracks selection, album_tracks
       album_tracks.each do |album_track|
-        selection[:track] = album_track
+        selection[:track] = album_track[:track]
+        selection[:id]    = album_track[:id]
         begin
           # first download the selected track
           dropbox_path   = @dropbox.search_for selection
