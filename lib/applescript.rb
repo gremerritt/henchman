@@ -19,13 +19,10 @@ module Henchman
       "end tell"
     end
 
-    def update_track_location_script selection, local_file
+    def update_track_location_script track_id, local_file
       "tell application \"iTunes\"\n"\
       "  try\n"\
-      "    set data_tracks to "\
-      "      (every track whose artist is \"#{selection[:artist].gsub(/'/){ %q('"'"') }}\" and "\
-      "                         album  is \"#{selection[:album].gsub(/'/){ %q('"'"') }}\"  and "\
-      "                         name   is \"#{selection[:track].gsub(/'/){ %q('"'"') }}\")\n"\
+      "    set data_tracks to (every track whose database ID is \"#{track_id}\")\n"\
       "    if (count of data_tracks) is 1 then\n"\
       "      set location of (item 1 of data_tracks) to "\
       "        (POSIX file \"#{local_file.gsub(/'/){ %q('"'"') }}\")\n"\
@@ -46,10 +43,12 @@ module Henchman
       "      set data_artist to artist of selection as string\n"\
       "      set data_album to album of selection as string\n"\
       "      set data_title to name of selection as string\n"\
+      "      set data_id to database ID of selection as string\n"\
       "      set data_location to POSIX path of (location of selection as string)\n"\
       "      set str to data_artist & \"#{@delimiter}\" & "\
       "                 data_album  & \"#{@delimiter}\" & "\
       "                 data_title  & \"#{@delimiter}\" & "\
+      "                 data_id  & \"#{@delimiter}\" & "\
       "                 data_location\n"\
       "      return str\n"\
       "    end if\n"\
@@ -88,10 +87,11 @@ module Henchman
       info = selection.split(@delimiter)
       if info.empty?
         false
-      elsif info[3] == "/missing value" || !File.exists?(info[3])
-        ret[:artist]   = info[0]
-        ret[:album]    = info[1]
-        ret[:track]    = info[2]
+      elsif info[4] == "/missing value" || !File.exists?(info[4])
+        ret[:artist] = info[0]
+        ret[:album]  = info[1]
+        ret[:track]  = info[2]
+        ret[:id]     = info[3]
         true
       else
         false
@@ -116,7 +116,7 @@ module Henchman
     end
 
     def set_track_location selection, local_file
-      ret = %x(#{applescript_command(update_track_location_script selection, local_file)}).chomp
+      ret = %x(#{applescript_command(update_track_location_script selection[:id], local_file)}).chomp
       if ret.empty? || ret == '0'
         puts "Could not update location of #{selection.values.join(':')} to #{local_file}"
         false
