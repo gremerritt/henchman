@@ -62,7 +62,8 @@ module Henchman
                 # now that we've gotten the selected track, spawn off another process
                 # to download the rest of the tracks on the album - spatial locality FTW
                 album_tracks = @appleScript.get_album_tracks_of selection
-                threads << Thread.new{ download_album_tracks selection, album_tracks }
+                puts JSON.pretty_generate album_tracks 
+                threads << Thread.new{ download_tracks selection, album_tracks }
               end
             rescue StandardError => err
               puts err
@@ -91,28 +92,25 @@ module Henchman
       @appleScript.get_active_app == 'iTunes'
     end
 
-    def self.download_album_tracks selection, album_tracks
-      album_tracks.each do |album_track|
-        selection[:track] = album_track[:track]
-        selection[:id]    = album_track[:id]
-        begin
-          # first download the selected track
-          dropbox_path   = @dropbox.search_for selection
-          file_save_path = @dropbox.download selection, dropbox_path
+    def self.download_tracks selection, album_tracks
+      album_tracks.each { |album_track| download_and_update album_track }
+    end
 
-          # if we downloaded it, update the location of the track in iTunes
-          unless !file_save_path
-            updated = @appleScript.set_track_location selection, file_save_path
-            # if the update failed, remove that file
-            if !updated
-              cleanup file_save_path
-              next
-            end
-          end
-        rescue StandardError => err
-          puts err
-          next
+    def self.download_and_update track
+      begin
+        # first download the selected track
+        dropbox_path   = @dropbox.search_for track
+        file_save_path = @dropbox.download track, dropbox_path
+
+        # if we downloaded it, update the location of the track in iTunes
+        unless !file_save_path
+          updated = @appleScript.set_track_location track, file_save_path
+
+          # if the update failed, remove that file
+          cleanup file_save_path if !updated
         end
+      rescue StandardError => err
+        puts err
       end
     end
 

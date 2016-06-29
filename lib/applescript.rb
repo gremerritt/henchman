@@ -61,18 +61,24 @@ module Henchman
     def get_album_tracks_script artist, album
       "tell application \"iTunes\"\n"\
       "  try\n"\
-      "    set data_tracks to "\
+      "    set album_tracks to "\
       "        (every track whose artist is \"#{artist}\" "\
       "                        and album is \"#{album}\")\n"\
-      "    set data_tracks_str to \"\"\n"\
-      "    repeat with data_track in data_tracks\n"\
-      "      if (location of data_track) as string is equal to \"missing value\" then\n"\
-      "        set data_tracks_str to data_tracks_str & (name of data_track) as string "\
-      "                   & \"#{@delimiter}\" & (database ID of data_track) as string "\
-			"                   & \"#{@delimiter*2}\"\n"\
+      "    set str to \"\"\n"\
+      "    repeat with album_track in album_tracks\n"\
+      "      set data_location to location of album_track as string\n"\
+      "      if data_location is equal to \"missing value\" then\n"\
+      "        set data_artist to artist of album_track as string\n"\
+      "        set data_album to album of album_track as string\n"\
+      "        set data_title to name of album_track as string\n"\
+      "        set data_id to database ID of album_track as string\n"\
+      "        set str to str & data_artist & \"#{@delimiter}\" "\
+      "                       & data_album  & \"#{@delimiter}\" "\
+      "                       & data_title  & \"#{@delimiter}\" "\
+      "                       & data_id     & \"#{@delimiter*2}\"\n"\
       "      end if\n"\
       "    end repeat\n"\
-      "    return data_tracks_str\n"\
+      "    return str\n"\
       "  on error\n"\
       "    return 0\n"\
       "  end try\n"\
@@ -133,7 +139,6 @@ module Henchman
       "        set data_album to album of playlist_track as string\n"\
       "        set data_title to name of playlist_track as string\n"\
       "        set data_id to database ID of playlist_track as string\n"\
-      "        set data_path to POSIX path of data_location\n"\
       "        set str to str & data_artist & \"#{@delimiter}\" "\
       "                       & data_album  & \"#{@delimiter}\" "\
       "                       & data_title  & \"#{@delimiter}\" "\
@@ -195,14 +200,18 @@ module Henchman
       artist = selection[:artist]
       album  = selection[:album]
       tracks = Array.new
+      puts get_album_tracks_script artist, album
       tmp_tracks = %x(#{applescript_command(get_album_tracks_script artist, album)}).chomp
+      puts tmp_tracks
       tmp_tracks = tmp_tracks.split @delimiter*2
       tmp_tracks.each_with_index do |track, index|
         next if track.empty?
-        track_and_id = track.split @delimiter
-        next if track_and_id[1] == selection[:id] ||
-        tracks.push( {:track => track_and_id[0],
-                      :id    => track_and_id[1]} )
+        tmp_track = track.split @delimiter
+        next if tmp_track[3] == selection[:id]
+        tracks.push( {:artist => tmp_track[0],
+                      :album  => tmp_track[1],
+                      :track  => tmp_track[2],
+                      :id     => tmp_track[3]} )
       end
       tracks
     end
