@@ -89,7 +89,10 @@ module Henchman
       "tell application \"iTunes\"\n"\
       "	 try\n"\
     	"    set selected_playlist to (get view of front window)\n"\
-      "      return name of selected_playlist as string\n"\
+      "    set playlist_name to name of selected_playlist as string\n"\
+      "    set playlist_special to special kind of selected_playlist as string\n"\
+      "    set str to playlist_name & \"#{@delimiter}\" & playlist_special\n"\
+      "    return str\n"\
       "	 on error\n"\
       "    return 0\n"\
       "  end try\n"\
@@ -156,28 +159,27 @@ module Henchman
       "osascript -e '#{script}' 2> /dev/null"
     end
 
-    def get_selection ret
+    def get_selection
       selection = %x( #{applescript_command(get_selection_script)} ).chomp
-      info = selection.split(@delimiter)
-      if info.empty?
-        false
-      elsif info[4] == "/missing value" || !File.exists?(info[4])
-        ret[:artist] = info[0]
-        ret[:album]  = info[1]
-        ret[:track]  = info[2]
-        ret[:id]     = info[3]
-        true
-      else
-        false
+      info = selection.split @delimiter
+      track = Hash.new
+      if !info.empty?
+        track[:artist] = info[0]
+        track[:album]  = info[1]
+        track[:track]  = info[2]
+        track[:id]     = info[3]
+        track[:path]   = info[4]
       end
+      track
     end
 
     def get_playlist
       playlist = %x(#{applescript_command(get_playlist_script)}).chomp
-      if playlist == "Music"
+      playlist = playlist.split @delimiter
+      if playlist[1] != 'none'
         false
       else
-        playlist
+        playlist[0]
       end
     end
 

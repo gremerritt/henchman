@@ -37,46 +37,45 @@ module Henchman
           return
         end
 
-        selection = Hash.new
-        track_selected = @appleScript.get_selection selection
+        track = @appleScript.get_selection
 
-        if track_selected && @ignore[selection[:artist]] < (Time.now.to_i - @config[:reprompt_timeout])
-          update_cache = true
-          @ignore.delete selection[:artist]
-          if @appleScript.fetch? "#{selection[:album]} by #{selection[:artist]}"
-            begin
-              # first download the selected track
-              dropbox_path   = @dropbox.search_for selection
-              file_save_path = @dropbox.download selection, dropbox_path
+        if track_selected? track
+          if (missing_track_selected? track) && (@ignore[track[:artist]] < (Time.now.to_i - @config[:reprompt_timeout]))
+            update_cache = true
+            @ignore[track[:artist]] = Time.now.to_i
+            if @appleScript.fetch? "#{track[:album]} by #{track[:artist]}"
+              begin
+                # first download the selected track
+                dropbox_path   = @dropbox.search_for track
+                file_save_path = @dropbox.download track, dropbox_path
 
-              # if we downloaded it, update the location of the track in iTunes
-              unless !file_save_path
-                updated = @appleScript.set_track_location selection, file_save_path
-                # if the update failed, cleanup that directory and don't bother
-                # doing the rest of the album
-                if !updated
-                  cleanup file_save_path
-                  next
+                # if we downloaded it, update the location of the track in iTunes
+                unless !file_save_path
+                  updated = @appleScript.set_track_location track, file_save_path
+                  # if the update failed, cleanup that directory and don't bother
+                  # doing the rest of the album
+                  if !updated
+                    cleanup file_save_path
+                    next
+                  end
+
+                  # now that we've gotten the selected track, spawn off another process
+                  # to download the rest of the tracks on the album - spatial locality FTW
+                  album_tracks = @appleScript.get_album_tracks_of track
+                  threads << Thread.new{ download_tracks album_tracks }
                 end
-
-                # now that we've gotten the selected track, spawn off another process
-                # to download the rest of the tracks on the album - spatial locality FTW
-                album_tracks = @appleScript.get_album_tracks_of selection
-                threads << Thread.new{ download_tracks album_tracks }
+              rescue StandardError => err
+                puts err
+                next
               end
-            rescue StandardError => err
-              puts err
-              next
             end
-          else
-            @ignore[selection[:artist]] = Time.now.to_i
           end
         else
           playlist = @appleScript.get_playlist
           if playlist
-            tracks = @appleScript.get_playlist_tracks playlist
-            if (!tracks.empty?) && (@appleScript.fetch? playlist)
-              puts "fetching #{playlist}"
+            playlist_tracks = @appleScript.get_playlist_tracks playlist
+            if (!playlist_tracks.empty?) && (@appleScript.fetch? playlist)
+              threads << Thread.new{ download_tracks playlist_tracks }
             end
           end
         end
@@ -85,6 +84,14 @@ module Henchman
 
       threads.each { |thr| thr.join }
       File.open(cache_file, "w") { |f| f.write( @ignore.to_yaml ) } if update_cache
+    end
+
+    def self.track_selected? track
+      !track.empty?
+    end
+
+    def self.missing_track_selected? track
+      track[:path] == '/missing value'
     end
 
     def self.itunes_is_active?

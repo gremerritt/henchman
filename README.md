@@ -38,6 +38,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
     - Add job to cleanup tracks that haven't been in X number of minutes
     - Add support to download playlists
+    - Figure out how to download playlist with a "'" in them
     - Move off of the 'dropbox-sdk' gem, since it uses their API V1, which will be depreciated June 28th, 2017 (or just buck up and update the gem myself)
 
 ## Contributing
