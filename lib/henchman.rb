@@ -2,6 +2,7 @@ require "henchman/version"
 require "configure"
 require "launchd_handler"
 require "core"
+require "clean"
 require "commander/import"
 require "yaml"
 
@@ -40,6 +41,15 @@ module Henchman
       c.description = 'Main interface into henchman. Should not be ran manually.'
       c.action do |args, options|
         Henchman::Core.run
+      end
+    end
+
+    command :clean do |c|
+      c.syntax = 'henchman clean'
+      c.description = 'Remove tracks from the file system that are old. '\
+                      'Should not be ran manually.'
+      c.action do |args, options|
+        Henchman::Clean.run
       end
     end
 
