@@ -62,7 +62,6 @@ module Henchman
                 # now that we've gotten the selected track, spawn off another process
                 # to download the rest of the tracks on the album - spatial locality FTW
                 album_tracks = @appleScript.get_album_tracks_of selection
-                puts JSON.pretty_generate album_tracks 
                 threads << Thread.new{ download_tracks selection, album_tracks }
               end
             rescue StandardError => err

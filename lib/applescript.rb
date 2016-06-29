@@ -200,9 +200,7 @@ module Henchman
       artist = selection[:artist]
       album  = selection[:album]
       tracks = Array.new
-      puts get_album_tracks_script artist, album
       tmp_tracks = %x(#{applescript_command(get_album_tracks_script artist, album)}).chomp
-      puts tmp_tracks
       tmp_tracks = tmp_tracks.split @delimiter*2
       tmp_tracks.each_with_index do |track, index|
         next if track.empty?
