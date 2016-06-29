@@ -50,6 +50,7 @@ module Henchman
                 # first download the selected track
                 dropbox_path   = @dropbox.search_for track
                 file_save_path = @dropbox.download track, dropbox_path
+                tag track
 
                 # if we downloaded it, update the location of the track in iTunes
                 unless !file_save_path
@@ -57,7 +58,7 @@ module Henchman
                   # if the update failed, cleanup that directory and don't bother
                   # doing the rest of the album
                   if !updated
-                    cleanup file_save_path
+                    cleanup file_save_path, track
                     next
                   end
 
@@ -111,6 +112,10 @@ module Henchman
       end
     end
 
+    def self.tag track
+      @cache[:history][track[:id].to_i] = Time.now.to_i
+    end
+
     def self.track_selected? track
       !track.empty?
     end
@@ -132,21 +137,23 @@ module Henchman
         # first download the selected track
         dropbox_path   = @dropbox.search_for track
         file_save_path = @dropbox.download track, dropbox_path
+        tag track
 
         # if we downloaded it, update the location of the track in iTunes
         unless !file_save_path
           updated = @appleScript.set_track_location track, file_save_path
 
           # if the update failed, remove that file
-          cleanup file_save_path if !updated
+          cleanup file_save_path, track if !updated
         end
       rescue StandardError => err
         puts err
       end
     end
 
-    def self.cleanup file_save_path
+    def self.cleanup file_save_path, track
       File.delete file_save_path
+      @cache[:history].delete track[:id].to_i
       while File.dirname(file_save_path) != @config[:root]
         file_save_path = File.dirname(file_save_path)
         begin
