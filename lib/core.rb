@@ -12,11 +12,13 @@ module Henchman
       begin
         cache_file = File.expand_path("~/.henchman/cache")
         @ignore = YAML.load_file(cache_file)
+        raise "Incorrectly formatted cache" if !(@ignore.include? :artist)
+        
+        @ignore.each_value { |val| val.default = 0 }
       rescue StandardError => err
         puts "Error opening cache file (#{err})"
-        @ignore = Hash.new
+        @ignore = Henchman::Templates.cache
       end
-      @ignore.default = 0
 
       threads = []
       update_cache = false
@@ -40,9 +42,9 @@ module Henchman
         track = @appleScript.get_selection
 
         if track_selected? track
-          if (missing_track_selected? track) && (@ignore[track[:artist]] < (Time.now.to_i - @config[:reprompt_timeout]))
+          if (missing_track_selected? track) && !(ignore? :artist, track[:artist])
             update_cache = true
-            @ignore[track[:artist]] = Time.now.to_i
+            update_ignore :artist, track[:artist]
             if @appleScript.fetch? "#{track[:album]} by #{track[:artist]}"
               begin
                 # first download the selected track
@@ -74,8 +76,12 @@ module Henchman
           playlist = @appleScript.get_playlist
           if playlist
             playlist_tracks = @appleScript.get_playlist_tracks playlist
-            if (!playlist_tracks.empty?) && (@appleScript.fetch? playlist)
-              threads << Thread.new{ download_tracks playlist_tracks }
+            if (!playlist_tracks.empty?) && !(ignore? :playlist, playlist)
+              update_cache = true
+              update_ignore :playlist, playlist
+              if @appleScript.fetch? playlist
+                threads << Thread.new{ download_tracks playlist_tracks }
+              end
             end
           end
         end
@@ -84,6 +90,25 @@ module Henchman
 
       threads.each { |thr| thr.join }
       File.open(cache_file, "w") { |f| f.write( @ignore.to_yaml ) } if update_cache
+    end
+
+    def self.update_ignore type, identifier
+      return false if !(valid_ignore_type? type)
+      @ignore[type][identifier] = Time.now.to_i
+    end
+
+    def self.ignore? type, identifier
+      return false if !(valid_ignore_type? type)
+      @ignore[type][identifier] >= (Time.now.to_i - @config[:reprompt_timeout])
+    end
+
+    def self.valid_ignore_type? type
+      if !(Henchman::Templates.cache.keys.include? type)
+        puts "Invalid type '#{type}' for ignore cache check"
+        false
+      else
+        true
+      end
     end
 
     def self.track_selected? track

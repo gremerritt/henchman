@@ -20,7 +20,7 @@ module Henchman
       cache_path        = File.expand_path("~/.henchman/cache")
       File.write(plist_path, plist)
       File.write(shell_script_path, Henchman::Templates.shell_script)
-      File.open(cache_path, "w") { |f| f.write( {}.to_yaml ) }
+      File.open(cache_path, "w") { |f| f.write( Henchman::Templates.cache.to_yaml ) }
 
       puts "Launching agent"
       `chmod +x #{shell_script_path}`

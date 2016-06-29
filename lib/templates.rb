@@ -30,18 +30,25 @@ module Henchman
     end
 
     def self.config
-      yml = {
-              :dropbox => {:key => '',
-                           :secret => '',
-                           :access_token => '',
-                           :user_id => '',
-                           :root     => ''},
-              :root => '',
-              :poll_itunes_open => 10,
-              :poll_track => 3,
-              :reprompt_timeout => 300,
-              :delimiter => '|~|'
-            }
+      {
+        :dropbox => {:key => '',
+                     :secret => '',
+                     :access_token => '',
+                     :user_id => '',
+                     :root     => ''},
+        :root => '',
+        :poll_itunes_open => 10,
+        :poll_track => 3,
+        :reprompt_timeout => 300,
+        :delimiter => '|~|'
+      }
+    end
+
+    def self.cache
+      {
+        :artist   => Hash.new(0),
+        :playlist => Hash.new(0)
+      }
     end
   end
 end
