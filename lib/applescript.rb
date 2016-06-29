@@ -13,9 +13,9 @@ module Henchman
       "end tell"
     end
 
-    def prompt_script
+    def prompt_script prompt
       "tell application \"iTunes\"\n"\
-      "  display dialog \"Fetch?\"\n"\
+      "  display dialog \"Fetch #{prompt}?\"\n"\
       "end tell"
     end
 
@@ -79,6 +79,74 @@ module Henchman
       "end tell"
     end
 
+    def get_playlist_script
+      "tell application \"iTunes\"\n"\
+      "	 try\n"\
+    	"    set selected_playlist to (get view of front window)\n"\
+      "      return name of selected_playlist as string\n"\
+      "	 on error\n"\
+      "    return 0\n"\
+      "  end try\n"\
+      "end tell"\
+    end
+
+    # def get_playlist_tracks_script playlist, offset, size
+    #   "tell application \"iTunes\"\n"\
+    #   "  try\n"\
+    #   "    set playlist_tracks to every track in playlist \"#{playlist}\"\n"\
+    #   "    if (#{offset} + 1) * #{size} is less than (count of playlist_tracks) then\n"\
+    #   "      set max to (#{offset} + 1) * #{size}\n"\
+    #   "    else\n"\
+    #   "      set max to count of playlist_tracks\n"\
+    #   "    end if\n"\
+    #   "    set min to (#{offset} * #{size}) + 1\n"\
+    #   "    display dialog min\n"\
+    #   "    display dialog max\n"\
+    #   "    set str to \"\"\n"\
+    #   "    repeat with n from min to max\n"\
+    #   "      set data_track to item n of playlist_tracks\n"\
+    #   "      set data_artist to artist of data_track as string\n"\
+    #   "      set data_album to album of data_track as string\n"\
+    #   "      set data_title to name of data_track as string\n"\
+    #   "      set data_id to database ID of data_track as string\n"\
+    #   "      set data_location to POSIX path of (location of data_track as string)\n"\
+    #   "      set str to str & data_artist & \"#{@delimiter}\" "\
+    #   "                     & data_album & \"#{@delimiter}\" "\
+    #   "                     & data_title & \"#{@delimiter}\" "\
+    #   "                     & data_id & \"#{@delimiter}\" "\
+    #   "                     & data_location & \"#{@delimiter*2}\n"\
+    #   "    end repeat\n"\
+    #   "  on error\n"\
+    #   "    return 0\n"\
+    #   "  end try\n"\
+    #   "end tell"
+    # end
+    def get_playlist_tracks_script playlist
+      "tell application \"iTunes\"\n"\
+      "  try\n"\
+      "    set playlist_tracks to every track in playlist \"#{playlist}\"\n"\
+      "    set str to \"\"\n"\
+      "    repeat with playlist_track in playlist_tracks\n"\
+      "      set data_location to location of playlist_track as string\n"\
+      "      if data_location is equal to \"missing value\" then\n"\
+      "        set data_artist to artist of playlist_track as string\n"\
+      "        set data_album to album of playlist_track as string\n"\
+      "        set data_title to name of playlist_track as string\n"\
+      "        set data_id to database ID of playlist_track as string\n"\
+      "        set data_path to POSIX path of data_location\n"\
+      "        set str to str & data_artist & \"#{@delimiter}\" "\
+      "                       & data_album  & \"#{@delimiter}\" "\
+      "                       & data_title  & \"#{@delimiter}\" "\
+      "                       & data_id     & \"#{@delimiter*2}\"\n"\
+      "      end if\n"\
+      "    end repeat\n"\
+      "    return str\n"\
+      "  on error\n"\
+      "    return 0\n"\
+      "  end try\n"\
+      "end tell"
+    end
+
     def applescript_command(script)
       "osascript -e '#{script}' 2> /dev/null"
     end
@@ -99,6 +167,30 @@ module Henchman
       end
     end
 
+    def get_playlist
+      playlist = %x(#{applescript_command(get_playlist_script)}).chomp
+      if playlist == "Music"
+        false
+      else
+        playlist
+      end
+    end
+
+    def get_playlist_tracks playlist
+      tracks = Array.new
+      tmp_tracks = %x(#{applescript_command(get_playlist_tracks_script playlist)}).chomp
+      tmp_tracks = tmp_tracks.split @delimiter*2
+      tmp_tracks.each_with_index do |track, index|
+        next if track.empty?
+        tmp_track = track.split @delimiter
+        tracks.push( {:artist => tmp_track[0],
+                      :album  => tmp_track[1],
+                      :track  => tmp_track[2],
+                      :id     => tmp_track[3]} )
+      end
+      tracks
+    end
+
     def get_album_tracks_of selection
       artist = selection[:artist]
       album  = selection[:album]
@@ -110,13 +202,13 @@ module Henchman
         track_and_id = track.split @delimiter
         next if track_and_id[1] == selection[:id] ||
         tracks.push( {:track => track_and_id[0],
-                     :id    => track_and_id[1]} )
+                      :id    => track_and_id[1]} )
       end
       tracks
     end
 
-    def fetch?
-      (%x(#{applescript_command(prompt_script)}).chomp == "button returned:OK") ? true : false
+    def fetch? prompt
+      (%x(#{applescript_command(prompt_script prompt)}).chomp == "button returned:OK") ? true : false
     end
 
     def get_active_app

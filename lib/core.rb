@@ -43,8 +43,7 @@ module Henchman
         if track_selected && @ignore[selection[:artist]] < (Time.now.to_i - @config[:reprompt_timeout])
           update_cache = true
           @ignore.delete selection[:artist]
-          if @appleScript.fetch?
-            puts "searching"
+          if @appleScript.fetch? "#{selection[:album]} by #{selection[:artist]}"
             begin
               # first download the selected track
               dropbox_path   = @dropbox.search_for selection
@@ -71,6 +70,14 @@ module Henchman
             end
           else
             @ignore[selection[:artist]] = Time.now.to_i
+          end
+        else
+          playlist = @appleScript.get_playlist
+          if playlist
+            tracks = @appleScript.get_playlist_tracks playlist
+            if (!tracks.empty?) && (@appleScript.fetch? playlist)
+              puts "fetching #{playlist}"
+            end
           end
         end
         sleep @config[:poll_track]
