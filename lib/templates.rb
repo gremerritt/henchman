@@ -46,8 +46,11 @@ module Henchman
 
     def self.cache
       {
-        :artist   => Hash.new(0),
-        :playlist => Hash.new(0)
+        :ignore => {
+                     :artist   => Hash.new(0),
+                     :playlist => Hash.new(0)
+                   },
+        :history => Hash.new
       }
     end
   end

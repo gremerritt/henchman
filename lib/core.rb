@@ -11,13 +11,13 @@ module Henchman
 
       begin
         cache_file = File.expand_path("~/.henchman/cache")
-        @ignore = YAML.load_file(cache_file)
-        raise "Incorrectly formatted cache" if !(@ignore.include? :artist)
-        
-        @ignore.each_value { |val| val.default = 0 }
+        @cache = YAML.load_file(cache_file)
+        raise "Incorrectly formatted cache" if !(@cache.include? :ignore)
+
+        @cache[:ignore].each_value { |val| val.default = 0 }
       rescue StandardError => err
         puts "Error opening cache file (#{err})"
-        @ignore = Henchman::Templates.cache
+        @cache = Henchman::Templates.cache
       end
 
       threads = []
@@ -89,21 +89,21 @@ module Henchman
       end
 
       threads.each { |thr| thr.join }
-      File.open(cache_file, "w") { |f| f.write( @ignore.to_yaml ) } if update_cache
+      File.open(cache_file, "w") { |f| f.write( @cache.to_yaml ) } if update_cache
     end
 
     def self.update_ignore type, identifier
       return false if !(valid_ignore_type? type)
-      @ignore[type][identifier] = Time.now.to_i
+      @cache[:ignore][type][identifier] = Time.now.to_i
     end
 
     def self.ignore? type, identifier
       return false if !(valid_ignore_type? type)
-      @ignore[type][identifier] >= (Time.now.to_i - @config[:reprompt_timeout])
+      @cache[:ignore][type][identifier] >= (Time.now.to_i - @config[:reprompt_timeout])
     end
 
     def self.valid_ignore_type? type
-      if !(Henchman::Templates.cache.keys.include? type)
+      if !(Henchman::Templates.cache[:ignore].keys.include? type)
         puts "Invalid type '#{type}' for ignore cache check"
         false
       else
