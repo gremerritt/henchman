@@ -62,7 +62,7 @@ module Henchman
                 # now that we've gotten the selected track, spawn off another process
                 # to download the rest of the tracks on the album - spatial locality FTW
                 album_tracks = @appleScript.get_album_tracks_of selection
-                threads << Thread.new{ download_tracks selection, album_tracks }
+                threads << Thread.new{ download_tracks album_tracks }
               end
             rescue StandardError => err
               puts err
@@ -91,7 +91,7 @@ module Henchman
       @appleScript.get_active_app == 'iTunes'
     end
 
-    def self.download_tracks selection, album_tracks
+    def self.download_tracks album_tracks
       album_tracks.each { |album_track| download_and_update album_track }
     end
 
