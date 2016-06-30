@@ -1,5 +1,6 @@
-require "dropbox.rb"
-require "applescript.rb"
+require "dropbox"
+require "applescript"
+require "cache"
 require "yaml"
 
 module Henchman
@@ -8,24 +9,14 @@ module Henchman
 
     def self.run
       @appleScript = Henchman::AppleScript.new
-
-      begin
-        cache_file = File.expand_path("~/.henchman/cache")
-        @cache = YAML.load_file(cache_file)
-        raise "Incorrectly formatted cache" if !(@cache.include? :ignore)
-
-        @cache[:ignore].each_value { |val| val.default = 0 }
-      rescue StandardError => err
-        puts "Error opening cache file (#{err})"
-        @cache = Henchman::Templates.cache
-      end
-
+      @cache = Henchman::Cache.new
       threads = []
       update_cache = false
 
       while itunes_is_active?
         begin
           @config = YAML.load_file(File.expand_path('~/.henchman/config'))
+          @cache.config @config
         rescue StandardError => err
           puts "Error opening config file. Try rerunning `henchman configure`"
           return
@@ -42,15 +33,15 @@ module Henchman
         track = @appleScript.get_selection
 
         if track_selected? track
-          if (missing_track_selected? track) && !(ignore? :artist, track[:artist])
+          if (missing_track_selected? track) && !(@cache.ignore? :artist, track[:artist])
             update_cache = true
-            update_ignore :artist, track[:artist]
+            @cache.update_ignore :artist, track[:artist]
             if @appleScript.fetch? "#{track[:album]} by #{track[:artist]}"
               begin
                 # first download the selected track
                 dropbox_path   = @dropbox.search_for track
                 file_save_path = @dropbox.download track, dropbox_path
-                tag track
+                @cache.tag track
 
                 # if we downloaded it, update the location of the track in iTunes
                 unless !file_save_path
@@ -77,9 +68,9 @@ module Henchman
           playlist = @appleScript.get_playlist
           if playlist
             playlist_tracks = @appleScript.get_playlist_tracks playlist
-            if (!playlist_tracks.empty?) && !(ignore? :playlist, playlist)
+            if (!playlist_tracks.empty?) && !(@cache.ignore? :playlist, playlist)
               update_cache = true
-              update_ignore :playlist, playlist
+              @cache.update_ignore :playlist, playlist
               if @appleScript.fetch? playlist
                 threads << Thread.new{ download_tracks playlist_tracks }
               end
@@ -90,30 +81,7 @@ module Henchman
       end
 
       threads.each { |thr| thr.join }
-      File.open(cache_file, "w") { |f| f.write( @cache.to_yaml ) } if update_cache
-    end
-
-    def self.update_ignore type, identifier
-      return false if !(valid_ignore_type? type)
-      @cache[:ignore][type][identifier] = Time.now.to_i
-    end
-
-    def self.ignore? type, identifier
-      return false if !(valid_ignore_type? type)
-      @cache[:ignore][type][identifier] >= (Time.now.to_i - @config[:reprompt_timeout])
-    end
-
-    def self.valid_ignore_type? type
-      if !(Henchman::Templates.cache[:ignore].keys.include? type)
-        puts "Invalid type '#{type}' for ignore cache check"
-        false
-      else
-        true
-      end
-    end
-
-    def self.tag track
-      @cache[:history][track[:id].to_i] = Time.now.to_i
+      @cache.flush if update_cache
     end
 
     def self.track_selected? track
@@ -137,7 +105,7 @@ module Henchman
         # first download the selected track
         dropbox_path   = @dropbox.search_for track
         file_save_path = @dropbox.download track, dropbox_path
-        tag track
+        @cache.tag track
 
         # if we downloaded it, update the location of the track in iTunes
         unless !file_save_path
@@ -153,7 +121,7 @@ module Henchman
 
     def self.cleanup file_save_path, track
       File.delete file_save_path
-      @cache[:history].delete track[:id].to_i
+      @cache.delete track
       while File.dirname(file_save_path) != @config[:root]
         file_save_path = File.dirname(file_save_path)
         begin

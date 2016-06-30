@@ -1,3 +1,5 @@
+require 'date'
+
 module Henchman
 
   class AppleScript
@@ -142,9 +144,9 @@ module Henchman
       "        set data_album to album of playlist_track as string\n"\
       "        set data_title to name of playlist_track as string\n"\
       "        set data_id to database ID of playlist_track as string\n"\
-      "        set str to str & data_artist & \"#{@delimiter}\" "\
-      "                       & data_album  & \"#{@delimiter}\" "\
-      "                       & data_title  & \"#{@delimiter}\" "\
+      "        set str to str & data_artist & \"#{@delimiter}\""\
+      "                       & data_album  & \"#{@delimiter}\""\
+      "                       & data_title  & \"#{@delimiter}\""\
       "                       & data_id     & \"#{@delimiter*2}\"\n"\
       "      end if\n"\
       "    end repeat\n"\
@@ -153,6 +155,28 @@ module Henchman
       "    return 0\n"\
       "  end try\n"\
       "end tell"
+    end
+
+    def get_tracks_with_location_script
+      "tell application \"iTunes\"\n"\
+      "  try\n"\
+      "    set all_tracks to every track in playlist \"Music\"\n"\
+		  "    set str to \"\"\n"\
+		  "    repeat with cur_track in all_tracks\n"\
+			"      set data_location to location of cur_track as string\n"\
+			"      if data_location is not equal to \"missing value\" then\n"\
+			"        set data_id to database ID of cur_track as string\n"\
+			"        set data_date to played date of cur_track\n"\
+			"        set str to str & data_id   & \"#{@delimiter}\""\
+      "                       & data_date & \"#{@delimiter}\""\
+      " & (POSIX path of data_location as string) & \"#{@delimiter*2}\"\n"\
+			"      end if\n"\
+		  "    end repeat\n"\
+		  "    return str\n"\
+      "  on error\n"\
+		  "    return 0\n"\
+	    "  end try\n"\
+      "end tell\n"\
     end
 
     def applescript_command(script)
@@ -173,6 +197,20 @@ module Henchman
       track
     end
 
+    def get_tracks_with_location
+      tracks = Array.new
+      tmp_tracks = %x(#{applescript_command(get_tracks_with_location_script)}).chomp
+      tmp_tracks = tmp_tracks.split @delimiter*2
+      tmp_tracks.each do |track|
+        next if track.empty?
+        tmp_track = track.split @delimiter
+        tracks.push( {:id   => tmp_track[0],
+                      :date => DateTime.parse(tmp_track[1]),
+                      :path => tmp_track[2]} )
+      end
+      tracks
+    end
+
     def get_playlist
       playlist = %x(#{applescript_command(get_playlist_script)}).chomp
       playlist = playlist.split @delimiter
@@ -187,7 +225,7 @@ module Henchman
       tracks = Array.new
       tmp_tracks = %x(#{applescript_command(get_playlist_tracks_script playlist)}).chomp
       tmp_tracks = tmp_tracks.split @delimiter*2
-      tmp_tracks.each_with_index do |track, index|
+      tmp_tracks.each do |track|
         next if track.empty?
         tmp_track = track.split @delimiter
         tracks.push( {:artist => tmp_track[0],
@@ -204,7 +242,7 @@ module Henchman
       tracks = Array.new
       tmp_tracks = %x(#{applescript_command(get_album_tracks_script artist, album)}).chomp
       tmp_tracks = tmp_tracks.split @delimiter*2
-      tmp_tracks.each_with_index do |track, index|
+      tmp_tracks.each do |track|
         next if track.empty?
         tmp_track = track.split @delimiter
         next if tmp_track[3] == selection[:id]

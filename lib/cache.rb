@@ -1,3 +1,5 @@
+require "templates"
+
 module Henchman
 
   class Cache
@@ -39,6 +41,15 @@ module Henchman
 
     def flush
       File.open(@cache_file, "w") { |f| f.write( @cache.to_yaml ) }
+    end
+
+    def valid_ignore_type? type
+      if !(Henchman::Templates.cache[:ignore].keys.include? type)
+        puts "Invalid type '#{type}' for ignore cache check"
+        false
+      else
+        true
+      end
     end
 
   end
