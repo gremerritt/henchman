@@ -22,11 +22,25 @@ This will guide you through setting up the application, including linking your D
 
 This starts the henchman daemon. You can now select a track in iTunes which is not available locally, and you will be asked if you'd like to fetch the track from your Dropbox. The application will also automatically download the rest of the album that contains the track you selected.
 
+You can also click on a playlist, and if that playlist has tracks that are not available locally, they will be downloaded for you.
+
+Starting the henchman daemon will also create a task to cleanse your iTunes tracks twice per day*. The task runs at 12:00 AM and PM (or as soon as possible if the machine was asleep at that time.) Any track that hasn't been played in more than 24 hours AND wasn't downloaded in the last 24 hours will be removed from your machine. You can also run the clean manually by running
+
+    $ henchman clean
+
+You can also run
+
+    $ henchman clean --played_date 'true'
+
+To remove tracks that haven't been played in the last 24 hours (ignoring when the track was last downloaded.)
+
+* = as of version 0.3.0 - if you were running an earlier version simply stop and re-start henchman
+
 ## Troubleshooting
 
-Running the `configure` command creates a `~/.henchman` direction. This directory contains your configuration file, as well as log files and a shell script used for running the application. If nothing appears to be happening in iTunes after running `henchman start` your best bet is to check the log files.
+Running the `configure` command creates a `~/.henchman` direction. This directory contains your configuration file, as well as log files and a shell scripts used for running the application. If nothing appears to be happening in iTunes after running `henchman start` your best bet is to check the log files.
 
-By default, the application checks if iTunes is open every 10 seconds. It it is, it continues to poll iTunes every 3 seconds to see if a track is selected. If you'd like to change these, you can edit the `config` YAML file. If you edit the `poll_itunes_open` setting, you'll need to stop and re-start the henchman daemon.
+By default, the application checks if iTunes is open every 10 seconds. If it is, it continues to poll iTunes every 3 seconds to see if a track is selected. If you'd like to change these, you can edit the `config` YAML file. If you edit the `poll_itunes_open` setting, you'll need to stop and re-start the henchman daemon.
 
 ## Development
 
@@ -36,9 +50,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## TODO
 
-    - Add job to cleanup tracks that haven't been in X number of minutes
-    - Figure out how to download playlist with a "'" in them
-    - Move off of the 'dropbox-sdk' gem, since it uses their API V1, which will be depreciated June 28th, 2017 (or just buck up and update the gem myself)
+  - Move off of the 'dropbox-sdk' gem, since it uses their API V1, which will be depreciated June 28th, 2017 (or just buck up and update the gem myself)
 
 ## Contributing
 
