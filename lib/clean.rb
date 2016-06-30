@@ -6,9 +6,11 @@ module Henchman
 
   class Clean
 
-    def self.run
+    def self.run played_date
 
       puts "Cleanup ran at #{DateTime.now.strftime('%m-%d-%Y %k:%M:%S%p')}"
+
+      played_date = (played_date == 'true') ? true : false
 
       @appleScript = Henchman::AppleScript.new
       @cache = Henchman::Cache.new
@@ -26,7 +28,7 @@ module Henchman
       tracks = @appleScript.get_tracks_with_location
       tracks.each do |track|
         cache_time = @cache.get_time_last_downloaded track
-        if track[:date] < cutoff && cache_time < cutoff
+        if track[:date] < cutoff && ((cache_time < cutoff) || played_date)
           cleanup track
         end
       end

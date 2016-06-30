@@ -45,11 +45,13 @@ module Henchman
     end
 
     command :clean do |c|
-      c.syntax = 'henchman clean'
+      c.syntax = 'henchman clean [options]'
       c.description = 'Remove tracks from the file system that are old. '\
                       'Should not be ran manually.'
+      c.option '--played_date \'true\'/\'false\'', String, 'Delete tracks based only on last played date'
       c.action do |args, options|
-        Henchman::Clean.run
+        options.default :played_date => 'false'
+        Henchman::Clean.run options.played_date
       end
     end
 

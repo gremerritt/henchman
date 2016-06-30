@@ -17,7 +17,7 @@ module Henchman
 
     def prompt_script prompt
       "tell application \"iTunes\"\n"\
-      "  display dialog \"Fetch #{prompt}?\"\n"\
+      "  display dialog \"Fetch #{prompt.gsub(/'/){ %q('"'"') }}?\"\n"\
       "end tell"
     end
 
@@ -64,8 +64,8 @@ module Henchman
       "tell application \"iTunes\"\n"\
       "  try\n"\
       "    set album_tracks to "\
-      "        (every track whose artist is \"#{artist}\" "\
-      "                        and album is \"#{album}\")\n"\
+      "        (every track whose artist is \"#{artist.gsub(/'/){ %q('"'"') }}\" "\
+      "                        and album is \"#{album.gsub(/'/){ %q('"'"') }}\")\n"\
       "    set str to \"\"\n"\
       "    repeat with album_track in album_tracks\n"\
       "      set data_location to location of album_track as string\n"\
@@ -135,7 +135,7 @@ module Henchman
     def get_playlist_tracks_script playlist
       "tell application \"iTunes\"\n"\
       "  try\n"\
-      "    set playlist_tracks to every track in playlist \"#{playlist}\"\n"\
+      "    set playlist_tracks to every track in playlist \"#{playlist.gsub(/'/){ %q('"'"') }}\"\n"\
       "    set str to \"\"\n"\
       "    repeat with playlist_track in playlist_tracks\n"\
       "      set data_location to location of playlist_track as string\n"\
