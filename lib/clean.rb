@@ -21,8 +21,35 @@ module Henchman
         return
       end
 
-      puts JSON.pretty_generate @appleScript.get_tracks_with_location
+      cutoff = DateTime.now - 1
 
+      tracks = @appleScript.get_tracks_with_location
+      tracks.each do |track|
+        cache_time = @cache.get_time_last_downloaded track
+        if track[:date] < cutoff && cache_time < cutoff
+          cleanup track
+        end
+      end
+
+      @cache.flush
+
+    end
+
+    def self.cleanup track
+      filepath = track[:path]
+      File.delete filepath
+      @cache.delete track
+      puts "Deleted #{filepath}"
+
+      while File.dirname(filepath) != @config[:root]
+        filepath = File.dirname(filepath)
+        begin
+          Dir.rmdir(filepath)
+          puts "Deleted #{filepath}"
+        rescue SystemCallError => msg
+          break
+        end
+      end
     end
 
   end

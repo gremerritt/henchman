@@ -1,4 +1,5 @@
 require "templates"
+require "date"
 
 module Henchman
 
@@ -15,6 +16,7 @@ module Henchman
         puts "Error opening cache file (#{err})"
         @cache = Henchman::Templates.cache
       end
+      @cache[:history].default = DateTime.new
     end
 
     def config config
@@ -31,8 +33,12 @@ module Henchman
       @cache[:ignore][type][identifier] >= (Time.now.to_i - @config[:reprompt_timeout])
     end
 
+    def get_time_last_downloaded track
+      @cache[:history][track[:id].to_i]
+    end
+
     def tag track
-      @cache[:history][track[:id].to_i] = Time.now.to_i
+      @cache[:history][track[:id].to_i] = DateTime.now
     end
 
     def delete track
