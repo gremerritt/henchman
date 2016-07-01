@@ -15,9 +15,20 @@ module Henchman
       "end tell"
     end
 
-    def prompt_script prompt
+    def prompt_script buttons = []
+      buttons = buttons.slice(0..1).map { |b| "Download #{b.gsub(/'/){ %q('"'"') }}" }
       "tell application \"iTunes\"\n"\
-      "  display dialog \"Fetch #{prompt.gsub(/'/){ %q('"'"') }}?\"\n"\
+	    "  display dialog \"\""\
+      "    buttons {"\
+      "             \"Cancel\""\
+      "             #{(buttons.length > 0) ? ",\"#{buttons.first}\"" : ''}"\
+      "             #{(buttons.length > 1) ? ",\"#{buttons.last}\""  : ''}"\
+      "            }"\
+      "    with title \"Henchman 🏃\""\
+      "    cancel button \"Cancel\""\
+      "    default button \"#{(buttons.length > 0) ? buttons.last : 'Cancel'}\""\
+      "    giving up after 60"\
+      "    with icon note\n"\
       "end tell"
     end
 
@@ -254,8 +265,9 @@ module Henchman
       tracks
     end
 
-    def fetch? prompt
-      (%x(#{applescript_command(prompt_script prompt)}).chomp == "button returned:OK") ? true : false
+    def fetch? buttons = []
+      resp = %x(#{applescript_command(prompt_script buttons)}).chomp
+      resp.split(',').first.split(':').last.split('Download ').last rescue ''
     end
 
     def get_active_app

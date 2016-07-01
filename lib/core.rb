@@ -36,7 +36,10 @@ module Henchman
           if (missing_track_selected? track) && !(@cache.ignore? :artist, track[:artist])
             update_cache = true
             @cache.update_ignore :artist, track[:artist]
-            if @appleScript.fetch? "#{track[:album]} by #{track[:artist]}"
+
+            opts = ['Album', 'Track']
+            fetch = @appleScript.fetch? opts
+            if opts.include? fetch
               begin
                 # first download the selected track
                 dropbox_path   = @dropbox.search_for track
@@ -53,10 +56,13 @@ module Henchman
                     next
                   end
 
-                  # now that we've gotten the selected track, spawn off another process
-                  # to download the rest of the tracks on the album - spatial locality FTW
-                  album_tracks = @appleScript.get_album_tracks_of track
-                  threads << Thread.new{ download_tracks album_tracks }
+                  # now that we've gotten the selected track, if we're to also get the
+                  # album, spawn off another process to download the rest of the tracks
+                  # on the album - spatial locality FTW
+                  if fetch == 'Album'
+                    album_tracks = @appleScript.get_album_tracks_of track
+                    threads << Thread.new{ download_tracks album_tracks }
+                  end
                 end
               rescue StandardError => err
                 puts err
@@ -71,7 +77,7 @@ module Henchman
             if (!playlist_tracks.empty?) && !(@cache.ignore? :playlist, playlist)
               update_cache = true
               @cache.update_ignore :playlist, playlist
-              if @appleScript.fetch? playlist
+              if @appleScript.fetch?([playlist]) == playlist
                 threads << Thread.new{ download_tracks playlist_tracks }
               end
             end
