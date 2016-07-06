@@ -8,7 +8,8 @@ module Henchman
 
     def self.run played_date
 
-      puts "Cleanup ran at #{DateTime.now.strftime('%m-%d-%Y %k:%M:%S%p')}"
+      puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|"\
+           "Cleanup Starting"
 
       played_date = (played_date == 'true') ? true : false
 
@@ -19,7 +20,8 @@ module Henchman
         @cache.config @config
         @appleScript.setup @config
       rescue StandardError => err
-        puts "Error opening config file. Try rerunning `henchman configure`"
+        puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|"\
+             "Error opening config file. Try rerunning `henchman configure`"
         return
       end
 
@@ -35,19 +37,24 @@ module Henchman
 
       @cache.flush
 
+      puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|"\
+           "Cleanup Finished"
+
     end
 
     def self.cleanup track
       filepath = track[:path]
       File.delete filepath
       @cache.delete track
-      puts "Deleted #{filepath}"
+      puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|"\
+           "Deleted #{filepath}"
 
       while File.dirname(filepath) != @config[:root]
         filepath = File.dirname(filepath)
         begin
           Dir.rmdir(filepath)
-          puts "Deleted #{filepath}"
+          puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|"\
+               "Deleted #{filepath}"
         rescue SystemCallError => msg
           break
         end

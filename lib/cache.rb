@@ -13,7 +13,8 @@ module Henchman
 
         @cache[:ignore].each_value { |val| val.default = 0 }
       rescue StandardError => err
-        puts "Error opening cache file (#{err})"
+        puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|"\
+             "Error opening cache file (#{err})"
         @cache = Henchman::Templates.cache
       end
       @cache[:history].default = DateTime.new
@@ -51,7 +52,8 @@ module Henchman
 
     def valid_ignore_type? type
       if !(Henchman::Templates.cache[:ignore].keys.include? type)
-        puts "Invalid type '#{type}' for ignore cache check"
+        puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|"\
+             "Invalid type '#{type}' for ignore cache check"
         false
       else
         true

@@ -18,7 +18,8 @@ module Henchman
           @config = YAML.load_file(File.expand_path('~/.henchman/config'))
           @cache.config @config
         rescue StandardError => err
-          puts "Error opening config file. Try rerunning `henchman configure`"
+          puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|"\
+               "Error opening config file. Try rerunning `henchman configure`"
           return
         end
 
@@ -26,7 +27,8 @@ module Henchman
         begin
           @dropbox = Henchman::DropboxAssistant.new @config
         rescue
-          puts "Error connecting to Dropbox. Try rerunning `henchman configure`"
+          puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|"\
+               "Error connecting to Dropbox. Try rerunning `henchman configure`"
           return
         end
 
@@ -65,7 +67,7 @@ module Henchman
                   end
                 end
               rescue StandardError => err
-                puts err
+                puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|#{err}"
                 next
               end
             end
@@ -100,6 +102,7 @@ module Henchman
 
     def self.itunes_is_active?
       @appleScript.get_active_app == 'iTunes'
+      # true
     end
 
     def self.download_tracks album_tracks
@@ -121,7 +124,7 @@ module Henchman
           cleanup file_save_path, track if !updated
         end
       rescue StandardError => err
-        puts err
+        puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|#{err}"
       end
     end
 

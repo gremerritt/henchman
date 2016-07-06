@@ -34,23 +34,29 @@ module Henchman
       `launchctl load #{plist_path_clean}`
 
       puts "Launched successfully! You are now running henchman."
+      open(File.expand_path("~/.henchman/stdout.log"), 'a') do |f|
+        f.puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|Henchman Started"
+      end
     end
 
     def self.stop
       puts "Stopping agents"
       plist_path_main = File.expand_path("~/Library/LaunchAgents/com.henchman.plist")
       plist_path_clean = File.expand_path("~/Library/LaunchAgents/com.henchman.clean.plist")
-      `launchctl unload #{plist_path_main}`
-      `launchctl unload #{plist_path_clean}`
-      `rm #{plist_path_main}`
-      `rm #{plist_path_clean}`
-      `rm #{File.expand_path("~/.henchman/run.sh")}`
-      `rm #{File.expand_path("~/.henchman/clean.sh")}`
-      `rm #{File.expand_path("~/.henchman/cache")}`
-      `rm #{File.expand_path("~/.henchman/stdout.log")}`
-      `rm #{File.expand_path("~/.henchman/stderr.log")}`
+      `launchctl unload #{plist_path_main} 2> /dev/null`
+      `launchctl unload #{plist_path_clean} 2> /dev/null`
+      `rm #{plist_path_main} 2> /dev/null`
+      `rm #{plist_path_clean} 2> /dev/null`
+      `rm #{File.expand_path("~/.henchman/run.sh")} 2> /dev/null`
+      `rm #{File.expand_path("~/.henchman/clean.sh")} 2> /dev/null`
+      `rm #{File.expand_path("~/.henchman/cache")} 2> /dev/null`
+      # `rm #{File.expand_path("~/.henchman/stdout.log")} 2> /dev/null`
+      # `rm #{File.expand_path("~/.henchman/stderr.log")} 2> /dev/null`
 
       puts "Successfully stopped henchman"
+      open(File.expand_path("~/.henchman/stdout.log"), 'a') do |f|
+        f.puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|Henchman Stopped"
+      end
     end
 
     def self.internet_connection?

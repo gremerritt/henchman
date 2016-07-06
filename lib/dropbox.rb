@@ -12,15 +12,17 @@ module Henchman
         @client = DropboxClient.new(@config[:dropbox][:access_token])
         true
       rescue DropboxError => msg
-        puts "Couldn't connect to Dropbox (#{msg}). \n"\
-             "Run `henchman stop` then `henchman configure` \n"\
+        puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|"\
+             "Couldn't connect to Dropbox (#{msg}). "\
+             "Run `henchman stop` then `henchman configure` "\
              "to configure Dropbox connection."
         false
       end
     end
 
     def download selection, dropbox_path
-      puts "downloading #{selection[:track]}"
+      puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|"\
+           "Downloading #{selection.reject{|k,v| k == :path || k == :id}.values.join(':')}"
       begin
         # download the file
         content = @client.get_file(dropbox_path)
@@ -34,20 +36,25 @@ module Henchman
         open(file_save_path, 'w') {|f| f.puts content }
         file_save_path
       rescue DropboxError => msg
-        puts "Error downloading Dropbox file #{dropbox_path}: #{msg}"
+        puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|"\
+             "Error downloading Dropbox file #{dropbox_path}: #{msg}"
         false
       rescue StandardError => msg
-        puts "Error saving Dropbox file #{dropbox_path} to #{trgt_dir}: #{msg}"
+        puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|"\
+             "Error saving Dropbox file #{dropbox_path} to #{trgt_dir}: #{msg}"
         false
       end
     end
 
     def search_for selection
+      puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|"\
+           "Searching for #{selection.reject{|k,v| k == :path || k == :id}.values.join(':')}"
+
       # search Dropbox for the file
       begin
         results = @client.search(@config[:dropbox][:root], selection[:track])
       rescue DropboxError => msg
-        raise "Error accessing Dropbox Search API on #{selection.values.join(':')}: #{msg}"
+        raise "Error accessing Dropbox Search API on #{selection.reject{|k,v| k == :path || k == :id}.values.join(':')}: #{msg}"
       end
 
       # get rid of any results that are directories
