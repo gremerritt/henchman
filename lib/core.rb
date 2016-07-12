@@ -15,11 +15,19 @@ module Henchman
 
       while itunes_is_active?
         begin
-          @config = YAML.load_file(File.expand_path('~/.henchman/config'))
+          config_file = File.expand_path('~/.henchman/config')
+          @config = YAML.load_file(config_file)
+
+          # add this for backward compatability:
+          if !(@config.include? :delimiter_major)
+            @config[:delimiter_major] = Henchman::Templates.config[:delimiter_major]
+            File.open(config_file, "w") { |f| f.write( @config.to_yaml ) }
+          end
+
           @cache.config @config
         rescue StandardError => err
           puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|"\
-               "Error opening config file. Try rerunning `henchman configure`"
+               "Error opening config file. Try rerunning `henchman configure`. (#{err})"
           return
         end
 
@@ -102,7 +110,6 @@ module Henchman
 
     def self.itunes_is_active?
       @appleScript.get_active_app == 'iTunes'
-      # true
     end
 
     def self.download_tracks album_tracks

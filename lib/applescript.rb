@@ -5,7 +5,8 @@ module Henchman
   class AppleScript
 
     def setup config
-      @delimiter = config[:delimiter]
+      @delimiter       = config[:delimiter]
+      @delimiter_major = config[:delimiter_major]
     end
 
     def get_active_app_script
@@ -88,7 +89,7 @@ module Henchman
       "        set str to str & data_artist & \"#{@delimiter}\" "\
       "                       & data_album  & \"#{@delimiter}\" "\
       "                       & data_title  & \"#{@delimiter}\" "\
-      "                       & data_id     & \"#{@delimiter*2}\"\n"\
+      "                       & data_id     & \"#{@delimiter_major}\"\n"\
       "      end if\n"\
       "    end repeat\n"\
       "    return str\n"\
@@ -136,7 +137,7 @@ module Henchman
     #   "                     & data_album & \"#{@delimiter}\" "\
     #   "                     & data_title & \"#{@delimiter}\" "\
     #   "                     & data_id & \"#{@delimiter}\" "\
-    #   "                     & data_location & \"#{@delimiter*2}\n"\
+    #   "                     & data_location & \"#{@delimiter_major}\n"\
     #   "    end repeat\n"\
     #   "  on error\n"\
     #   "    return 0\n"\
@@ -158,7 +159,7 @@ module Henchman
       "        set str to str & data_artist & \"#{@delimiter}\""\
       "                       & data_album  & \"#{@delimiter}\""\
       "                       & data_title  & \"#{@delimiter}\""\
-      "                       & data_id     & \"#{@delimiter*2}\"\n"\
+      "                       & data_id     & \"#{@delimiter_major}\"\n"\
       "      end if\n"\
       "    end repeat\n"\
       "    return str\n"\
@@ -180,7 +181,7 @@ module Henchman
 			"        set data_date to played date of cur_track\n"\
 			"        set str to str & data_id   & \"#{@delimiter}\""\
       "                       & data_date & \"#{@delimiter}\""\
-      " & (POSIX path of data_location as string) & \"#{@delimiter*2}\"\n"\
+      " & (POSIX path of data_location as string) & \"#{@delimiter_major}\"\n"\
 			"      end if\n"\
 		  "    end repeat\n"\
 		  "    return str\n"\
@@ -211,7 +212,7 @@ module Henchman
     def get_tracks_with_location
       tracks = Array.new
       tmp_tracks = %x(#{applescript_command(get_tracks_with_location_script)}).chomp
-      tmp_tracks = tmp_tracks.split @delimiter*2
+      tmp_tracks = tmp_tracks.split @delimiter_major
       tmp_tracks.each do |track|
         next if track.empty?
         tmp_track = track.split @delimiter
@@ -235,7 +236,7 @@ module Henchman
     def get_playlist_tracks playlist
       tracks = Array.new
       tmp_tracks = %x(#{applescript_command(get_playlist_tracks_script playlist)}).chomp
-      tmp_tracks = tmp_tracks.split @delimiter*2
+      tmp_tracks = tmp_tracks.split @delimiter_major
       tmp_tracks.each do |track|
         next if track.empty?
         tmp_track = track.split @delimiter
@@ -252,7 +253,7 @@ module Henchman
       album  = selection[:album]
       tracks = Array.new
       tmp_tracks = %x(#{applescript_command(get_album_tracks_script artist, album)}).chomp
-      tmp_tracks = tmp_tracks.split @delimiter*2
+      tmp_tracks = tmp_tracks.split @delimiter_major
       tmp_tracks.each do |track|
         next if track.empty?
         tmp_track = track.split @delimiter
