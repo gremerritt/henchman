@@ -113,53 +113,46 @@ module Henchman
       "end tell"\
     end
 
-    # def get_playlist_tracks_script playlist, offset, size
-    #   "tell application \"iTunes\"\n"\
-    #   "  try\n"\
-    #   "    set playlist_tracks to every track in playlist \"#{playlist}\"\n"\
-    #   "    if (#{offset} + 1) * #{size} is less than (count of playlist_tracks) then\n"\
-    #   "      set max to (#{offset} + 1) * #{size}\n"\
-    #   "    else\n"\
-    #   "      set max to count of playlist_tracks\n"\
-    #   "    end if\n"\
-    #   "    set min to (#{offset} * #{size}) + 1\n"\
-    #   "    display dialog min\n"\
-    #   "    display dialog max\n"\
-    #   "    set str to \"\"\n"\
-    #   "    repeat with n from min to max\n"\
-    #   "      set data_track to item n of playlist_tracks\n"\
-    #   "      set data_artist to artist of data_track as string\n"\
-    #   "      set data_album to album of data_track as string\n"\
-    #   "      set data_title to name of data_track as string\n"\
-    #   "      set data_id to database ID of data_track as string\n"\
-    #   "      set data_location to POSIX path of (location of data_track as string)\n"\
-    #   "      set str to str & data_artist & \"#{@delimiter}\" "\
-    #   "                     & data_album & \"#{@delimiter}\" "\
-    #   "                     & data_title & \"#{@delimiter}\" "\
-    #   "                     & data_id & \"#{@delimiter}\" "\
-    #   "                     & data_location & \"#{@delimiter_major}\n"\
-    #   "    end repeat\n"\
-    #   "  on error\n"\
-    #   "    return 0\n"\
-    #   "  end try\n"\
-    #   "end tell"
-    # end
-    def get_playlist_tracks_script playlist
+    def progress
+      "set progress description to \"A simple progress indicator\"\n"\
+      "set progress additional description to \"Preparing…\"\n"\
+      "set progress total steps to -1\n"\
+      "\n"\
+      "delay 5\n"\
+      "\n"\
+      "set progress total steps to 100\n"\
+      "repeat with i from 1 to 100\n"\
+      "  try\n"\
+      "    set progress additional description to \"I am on step \" & i\n"\
+      "    set progress completed steps to i\n"\
+      "    delay 0.2\n"\
+      "  on error thisErr\n"\
+      "    display alert thisErr\n"\
+      "    exit repeat\n"\
+      "  end try\n"\
+      "end repeat"
+    end
+
+    def get_playlist_tracks_script playlist, skip = [], size = 100
+      "property counter : 0\n"\
       "tell application \"iTunes\"\n"\
       "  try\n"\
       "    set playlist_tracks to every track in playlist \"#{playlist.gsub(/'/){ %q('"'"') }}\"\n"\
       "    set str to \"\"\n"\
       "    repeat with playlist_track in playlist_tracks\n"\
       "      set data_location to location of playlist_track as string\n"\
-      "      if data_location is equal to \"missing value\" then\n"\
+      "      set data_id to database ID of playlist_track as string\n"\
+      "      if data_location is equal to \"missing value\" "\
+      "      and data_id is not in [#{skip.map{|e| "\"#{e}\""}.join(',')}] then\n"\
       "        set data_artist to artist of playlist_track as string\n"\
       "        set data_album to album of playlist_track as string\n"\
       "        set data_title to name of playlist_track as string\n"\
-      "        set data_id to database ID of playlist_track as string\n"\
       "        set str to str & data_artist & \"#{@delimiter}\""\
       "                       & data_album  & \"#{@delimiter}\""\
       "                       & data_title  & \"#{@delimiter}\""\
       "                       & data_id     & \"#{@delimiter_major}\"\n"\
+      "        set counter to counter + 1\n"\
+      "        if counter is equal to #{size} then exit repeat\n"\
       "      end if\n"\
       "    end repeat\n"\
       "    return str\n"\
@@ -233,9 +226,9 @@ module Henchman
       end
     end
 
-    def get_playlist_tracks playlist
+    def get_playlist_tracks playlist, skip = []
       tracks = Array.new
-      tmp_tracks = %x(#{applescript_command(get_playlist_tracks_script playlist)}).chomp
+      tmp_tracks = %x(#{applescript_command(get_playlist_tracks_script playlist, skip)}).chomp
       tmp_tracks = tmp_tracks.split @delimiter_major
       tmp_tracks.each do |track|
         next if track.empty?

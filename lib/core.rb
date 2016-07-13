@@ -10,8 +10,8 @@ module Henchman
     def self.run
       @appleScript = Henchman::AppleScript.new
       @cache = Henchman::Cache.new
+      @update_cache = false
       threads = []
-      update_cache = false
 
       while itunes_is_active?
         begin
@@ -44,7 +44,7 @@ module Henchman
 
         if track_selected? track
           if (missing_track_selected? track) && !(@cache.ignore? :artist, track[:artist])
-            update_cache = true
+            @update_cache = true
             @cache.update_ignore :artist, track[:artist]
 
             opts = ['Album', 'Track']
@@ -82,13 +82,13 @@ module Henchman
           end
         else
           playlist = @appleScript.get_playlist
-          if playlist
+          if playlist && !(@cache.ignore? :playlist, playlist)
             playlist_tracks = @appleScript.get_playlist_tracks playlist
-            if (!playlist_tracks.empty?) && !(@cache.ignore? :playlist, playlist)
-              update_cache = true
+            if !playlist_tracks.empty?
+              @update_cache = true
               @cache.update_ignore :playlist, playlist
               if @appleScript.fetch?([playlist]) == playlist
-                threads << Thread.new{ download_tracks playlist_tracks }
+                threads << Thread.new{ download_playlist playlist, playlist_tracks }
               end
             end
           end
@@ -97,7 +97,7 @@ module Henchman
       end
 
       threads.each { |thr| thr.join }
-      @cache.flush if update_cache
+      @cache.flush if @update_cache
     end
 
     def self.track_selected? track
@@ -112,8 +112,24 @@ module Henchman
       @appleScript.get_active_app == 'iTunes'
     end
 
-    def self.download_tracks album_tracks
-      album_tracks.each { |album_track| download_and_update album_track }
+    def self.download_playlist playlist, playlist_tracks
+      puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|Downloading Playlist \"#{playlist}\""
+      skip = Array.new
+      while true
+        download_tracks playlist_tracks, skip
+        playlist_tracks = @appleScript.get_playlist_tracks playlist, skip
+        break if playlist_tracks.empty?
+      end
+    end
+
+    def self.download_tracks album_tracks, skip = []
+      album_tracks.each do |album_track|
+        begin
+          download_and_update album_track
+        rescue StandardError => bad_id
+          skip.push bad_id
+        end
+      end
     end
 
     def self.download_and_update track
@@ -132,6 +148,7 @@ module Henchman
         end
       rescue StandardError => err
         puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|#{err}"
+        raise track[:id]
       end
     end
 

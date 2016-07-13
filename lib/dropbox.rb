@@ -69,7 +69,7 @@ module Henchman
 
       # if there were no results, raise err
       if results.empty?
-        raise "Track not found in Dropbox: #{selection.inspect}"
+        raise "Track not found in Dropbox: #{selection.reject{|k,v| k == :id}.values.join(':')}"
 
       # if there's only one result, return it
       elsif results.length == 1
