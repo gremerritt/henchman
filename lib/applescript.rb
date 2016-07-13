@@ -133,7 +133,7 @@ module Henchman
       "end repeat"
     end
 
-    def get_playlist_tracks_script playlist, skip = [], size = 100
+    def get_playlist_tracks_script playlist, skip = [], size = 5
       "property counter : 0\n"\
       "tell application \"iTunes\"\n"\
       "  try\n"\
@@ -229,7 +229,7 @@ module Henchman
     def get_playlist_tracks playlist, skip = []
       tracks = Array.new
       tmp_tracks = %x(#{applescript_command(get_playlist_tracks_script playlist, skip)}).chomp
-      tmp_tracks = tmp_tracks.split @delimiter_major
+      tmp_tracks = tmp_tracks.force_encoding("UTF-8").split @delimiter_major
       tmp_tracks.each do |track|
         next if track.empty?
         tmp_track = track.split @delimiter
