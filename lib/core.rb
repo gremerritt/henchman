@@ -144,7 +144,10 @@ module Henchman
           updated = @appleScript.set_track_location track, file_save_path
 
           # if the update failed, remove that file
-          cleanup file_save_path, track if !updated
+          if !updated
+            cleanup file_save_path, track
+            raise "Could not update location of #{track.reject{|k,v| k == :path || k == :id}.values.join(':')} to #{file_save_path}"
+          end
         end
       rescue StandardError => err
         puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|#{err}"

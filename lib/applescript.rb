@@ -274,8 +274,6 @@ module Henchman
 
       ret = %x(#{applescript_command(update_track_location_script selection[:id], local_file)}).chomp
       if ret.empty? || ret == '0'
-        puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|"\
-             "Could not update location of #{selection.reject{|k,v| k == :path || k == :id}.values.join(':')} to #{local_file}"
         false
       else
         true
