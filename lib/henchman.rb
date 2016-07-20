@@ -55,5 +55,13 @@ module Henchman
       end
     end
 
+    command :extensions do |c|
+      c.syntax = 'henchman extensions'
+      c.description = 'Collect file extensions'
+      c.action do |args, options|
+        Henchman.collect_exts
+      end
+    end
+
   end
 end

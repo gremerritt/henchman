@@ -34,7 +34,7 @@ module Henchman
     if config[:root].empty? || agree("\nUpdate local music directory? (y/n) ")
       get_local_root config
     end
-    
+
     Dir.mkdir(File.dirname(config_file)) if !File.exists?(File.dirname(config_file))
     File.open(config_file, "w") { |f| f.write( config.to_yaml ) }
     puts "\nConfiguration complete! Run `henchman start` to start the daemon."
@@ -118,12 +118,36 @@ module Henchman
   # def self.build_dropbox_dirs paths, client, path, level
   #   return if level == 2
   #   metadata = client.metadata(path)
+  #   puts JSON.pretty_generate(metadata)
   #   metadata['contents'].each do |elem|
   #     next if !elem['is_dir']
   #     paths[elem['path']] = Hash.new
   #     build_dropbox_dirs(paths[elem['path']], client, elem['path'], level+1)
   #   end
   # end
+
+  def self.collect_exts
+    config_file = File.expand_path('~/.henchman/config')
+    config = YAML.load_file(config_file)
+    client = connect config
+    exts = Hash.new
+    collect_exts_rec client, config[:dropbox][:root], exts
+
+    puts ""
+    exts.each_key { |k| puts k }
+  end
+
+  def self.collect_exts_rec client, path, exts
+    metadata = client.metadata(path)
+    metadata['contents'].each_with_index do |c, i|
+      print "\rCollecting#{'.'*(i%4)}#{' '*(3-(i%4))}"
+      if c['is_dir']
+        collect_exts_rec client, c['path'], exts
+      else
+        exts[File.extname(c['path'])] = true
+      end
+    end
+  end
 
   def self.get_local_root config
     not_done = true
