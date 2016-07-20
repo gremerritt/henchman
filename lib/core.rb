@@ -23,6 +23,10 @@ module Henchman
             @config[:delimiter_major] = Henchman::Templates.config[:delimiter_major]
             File.open(config_file, "w") { |f| f.write( @config.to_yaml ) }
           end
+          if !(@config.include? :file_extensions)
+            @config[:file_extensions] = Henchman::Templates.config[:file_extensions]
+            File.open(config_file, "w") { |f| f.write( @config.to_yaml ) }
+          end
 
           @cache.config @config
         rescue StandardError => err

@@ -77,7 +77,8 @@ module Henchman
         :poll_track => 3,
         :reprompt_timeout => 300,
         :delimiter => '|~|',
-        :delimiter_major => '|?|'
+        :delimiter_major => '|?|',
+        :file_extensions => ['mp3', 'm4a']
       }
     end
 
