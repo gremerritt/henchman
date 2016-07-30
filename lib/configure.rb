@@ -91,8 +91,6 @@ module Henchman
   end
 
   def self.get_dropbox_root config, client
-    # paths = Hash.new
-    # build_dropbox_dirs(paths, client, '/', 0)
     not_done = true
     while not_done
       path = ask("Enter the path to your music directory in Dropbox: (? for help)" )
@@ -114,17 +112,6 @@ module Henchman
       end
     end
   end
-
-  # def self.build_dropbox_dirs paths, client, path, level
-  #   return if level == 2
-  #   metadata = client.metadata(path)
-  #   puts JSON.pretty_generate(metadata)
-  #   metadata['contents'].each do |elem|
-  #     next if !elem['is_dir']
-  #     paths[elem['path']] = Hash.new
-  #     build_dropbox_dirs(paths[elem['path']], client, elem['path'], level+1)
-  #   end
-  # end
 
   def self.collect_exts
     config_file = File.expand_path('~/.henchman/config')
