@@ -16,7 +16,7 @@ module Henchman
       c.syntax = 'henchman start'
       c.description = 'Starts the henchman daemon'
       c.action do |args, options|
-        Henchman::LaunchdHandler.start
+        Henchman::LaunchdHandler.start args
       end
     end
 
@@ -40,7 +40,7 @@ module Henchman
       c.syntax = 'henchman run'
       c.description = 'Main interface into henchman. Should not be ran manually.'
       c.action do |args, options|
-        Henchman::Core.run
+        Henchman::Core.run args
       end
     end
 

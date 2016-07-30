@@ -7,7 +7,9 @@ module Henchman
 
   class Core
 
-    def self.run
+    def self.run args
+      debug = true if args[0] == 'debug'
+
       @appleScript = Henchman::AppleScript.new
       @cache = Henchman::Cache.new
       @update_cache = false
@@ -37,7 +39,7 @@ module Henchman
 
         @appleScript.setup @config
         begin
-          @dropbox = Henchman::DropboxAssistant.new @config
+          @dropbox = Henchman::DropboxAssistant.new @config, debug
         rescue
           puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|"\
                "Error connecting to Dropbox. Try rerunning `henchman configure`"

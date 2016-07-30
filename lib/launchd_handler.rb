@@ -4,7 +4,7 @@ module Henchman
 
   class LaunchdHandler
 
-    def self.start
+    def self.start args
       if !internet_connection?
         puts "No internet connection detected - unable to verify correct configuration."
         return if !agree("Launch henchman anyways? (y/n) ")
@@ -22,7 +22,7 @@ module Henchman
       shell_script_path_clean = File.expand_path("~/.henchman/clean.sh")
       cache_path        = File.expand_path("~/.henchman/cache")
       File.write(plist_path_main, plist_main)
-      File.write(shell_script_path_main, Henchman::Templates.shell_script('run'))
+      File.write(shell_script_path_main, Henchman::Templates.shell_script('run', args))
       File.write(plist_path_clean, plist_clean)
       File.write(shell_script_path_clean, Henchman::Templates.shell_script('clean'))
       File.open(cache_path, "w") { |f| f.write( Henchman::Templates.cache.to_yaml ) }

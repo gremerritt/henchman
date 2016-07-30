@@ -60,9 +60,9 @@ module Henchman
       "</plist>"
     end
 
-    def self.shell_script command
+    def self.shell_script command, args = []
       "#!/bin/sh\n"\
-      "#{`which henchman`.chomp} #{command}"
+      "#{`which henchman`.chomp} #{command} #{args.join(' ')}"
     end
 
     def self.config
