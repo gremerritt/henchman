@@ -63,5 +63,14 @@ module Henchman
       end
     end
 
+    command :log do |c|
+      c.syntax = 'henchman log [options]'
+      c.description = 'Tails the henchman stdout log'
+      c.option '--n <number>', Integer, 'Number of lines to tail'
+      c.action do |args, options|
+        options.default :n => 10
+        puts `tail -n #{options.n} #{File.expand_path('~/.henchman/stdout.log')}`
+      end
+    end
   end
 end
