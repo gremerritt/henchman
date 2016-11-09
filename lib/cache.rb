@@ -35,7 +35,8 @@ module Henchman
     end
 
     def get_time_last_downloaded track
-      @cache[:history][track[:id].to_i]
+      id = track[:id].to_i
+      (@cache[:history].include?(id)) ? @cache[:history][id] : DateTime.new
     end
 
     def tag track

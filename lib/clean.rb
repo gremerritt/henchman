@@ -7,7 +7,6 @@ module Henchman
   class Clean
 
     def self.run played_date
-
       puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|"\
            "Cleanup Starting"
 
@@ -30,6 +29,7 @@ module Henchman
       tracks = @appleScript.get_tracks_with_location
       tracks.each do |track|
         cache_time = @cache.get_time_last_downloaded track
+        puts "cache_time: #{cache_time} (#{cache_time.class})"
         if track[:date] < cutoff && ((cache_time < cutoff) || played_date)
           cleanup track
         end
@@ -44,20 +44,20 @@ module Henchman
 
     def self.cleanup track
       filepath = track[:path]
-      File.delete filepath
-      @cache.delete track
-      puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|"\
-           "Deleted #{filepath}"
+      begin
+        File.delete filepath
+        @cache.delete track
+        puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|"\
+             "Deleted #{filepath}"
 
-      while File.dirname(filepath) != @config[:root]
-        filepath = File.dirname(filepath)
-        begin
+        while File.dirname(filepath) != @config[:root]
+          filepath = File.dirname(filepath)
           Dir.rmdir(filepath)
           puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|"\
                "Deleted #{filepath}"
-        rescue SystemCallError => msg
-          break
         end
+      rescue SystemCallError => msg
+        # do nothing
       end
     end
 

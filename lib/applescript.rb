@@ -210,7 +210,7 @@ module Henchman
         next if track.empty?
         tmp_track = track.split @delimiter
         tracks.push( {:id   => tmp_track[0],
-                      :date => DateTime.parse(tmp_track[1]),
+                      :date => (tmp_track[1] != 'missing value') ? DateTime.parse(tmp_track[1]) : DateTime.new,
                       :path => tmp_track[2]} )
       end
       tracks
