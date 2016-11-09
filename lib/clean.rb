@@ -29,7 +29,6 @@ module Henchman
       tracks = @appleScript.get_tracks_with_location
       tracks.each do |track|
         cache_time = @cache.get_time_last_downloaded track
-        puts "cache_time: #{cache_time} (#{cache_time.class})"
         if track[:date] < cutoff && ((cache_time < cutoff) || played_date)
           cleanup track
         end
