@@ -1,4 +1,4 @@
-require "dropbox"
+require "dbx_assistant"
 require "applescript"
 require "cache"
 require "yaml"
@@ -40,9 +40,9 @@ module Henchman
         @appleScript.setup @config
         begin
           @dropbox = Henchman::DropboxAssistant.new @config, debug
-        rescue
+        rescue StandardError => msg
           puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|"\
-               "Error connecting to Dropbox. Try rerunning `henchman configure`"
+               "Error connecting to Dropbox (#{msg}). Try rerunning `henchman configure`"
           return
         end
 

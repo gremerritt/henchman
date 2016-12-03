@@ -29,18 +29,20 @@ module Henchman
 
     def download selection, dropbox_path
       puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|"\
-           "Downloading #{selection.reject{|k,v| k == :path || k == :id}.values.join(':')}"
+           "Downloading #{selection.reject{|k,v| k == :path || k == :id}.values.join(':')} from #{dropbox_path}"
       begin
         # download the file
         content, body = @client.download dropbox_path
 
         # make sure we have the directory to put it in
         trgt_dir = File.join @config[:root], selection[:artist], selection[:album]
+        puts trgt_dir if @debug
         system 'mkdir', '-p', trgt_dir
 
         # save the file
         file_save_path = File.join trgt_dir, File.basename(dropbox_path)
-        open(file_save_path, 'w') {|f| f.puts content }
+        puts file_save_path if @debug
+        open(file_save_path, 'w') {|f| f.puts body }
         file_save_path
       rescue DropboxError => msg
         puts "#{DateTime.now.strftime('%m-%d-%Y %H:%M:%S')}|"\
@@ -57,12 +59,12 @@ module Henchman
       puts "Searching for #{value} in #{dir}, filtering by <#{filter}>" if @debug
       begin
         results = @client.search dir, value, 0, @search_limit
-        puts JSON.pretty_generate results
         puts "#{results.length} total results found" if @debug
         if filter == :dir
-          results.reject! { |result| !result['is_dir'] }
+          results.reject! { |result| !result.is_a? Dropbox::FolderMetadata }
         elsif filter == :file
-          results.reject! { |result| result['is_dir'] || !(@config[:file_extensions].include?(File.extname(result['path'])[1..-1])) }
+          results.reject! { |result| !result.is_a? Dropbox::FileMetadata ||
+                                     !(@config[:file_extensions].include?(File.extname(result.path_lower)[1..-1])) }
         end
         puts "Returning #{results.length} results for `search` (after filtering)" if @debug
         return results
@@ -93,7 +95,8 @@ module Henchman
         end
       else    # Otherwise, filter off all the directories and things without the right extensions
         puts "Filtering out directories and incorrect file extensions" if @debug
-        results.reject! { |result| result['is_dir'] || !(@config[:file_extensions].include?(File.extname(result['path'])[1..-1])) }
+        results.reject! { |result| !result.is_a? Dropbox::FileMetadata ||
+                                   !(@config[:file_extensions].include?(File.extname(result.path_lower)[1..-1])) }
       end
       puts "Returning #{results.length} results from `get_results`" if @debug
       return results
@@ -109,7 +112,7 @@ module Henchman
       if results.empty? && (selection[:track].match(%r( *\[.*\] *)) || selection[:track].match(%r( *\(.*\) *)))
         puts "No results. Trying without brackets or parenthesis" if @debug
         track = selection[:track].gsub(%r( *\[.*\] *), " ").gsub(%r( *\(.*\) *), " ")
-        results = get_results selection[:track], selection[:artist]
+        results = get_results track, selection[:artist]
       end
 
       # if there were no results, raise err
@@ -142,22 +145,22 @@ module Henchman
         end
 
         results.each do |result|
-          dir = "#{File.dirname(result['path']).downcase}/"
-          basename = " #{File.basename(result['path']).downcase}"
+          dir = "#{File.dirname(result.path_lower)}/"
+          basename = " #{File.basename(result.path_lower)}"
           tokens.each do |token|
             if dir =~ %r(.*[\s\/-]#{token}[\s\/-].*)
               puts "Token #{token} found in #{dir}" if @debug
               if results.length == 1
-                return result['path']
+                return result.path_display
               else
-                scores[result['path']] += 1
+                scores[result.path_display] += 1
               end
             end
           end
           track_tokens.each do |token|
             if basename =~ %r([.]*[\s-]+#{token})
               puts "Token #{token} found in #{basename}" if @debug
-              scores[result['path']] += 1
+              scores[result.path_display] += 1
             end
           end
         end

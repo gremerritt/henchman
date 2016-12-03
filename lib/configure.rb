@@ -43,10 +43,10 @@ module Henchman
   def self.connect config={}
     begin
       config = YAML.load_file(File.expand_path("~/.henchman/config")) if config.empty?
-      client = DropboxClient.new(config[:dropbox][:access_token])
-      account_info = client.account_info()
+      client = Dropbox::Client.new config[:dropbox][:access_token]
+      account_info = client.get_current_account()
       puts "Successfully connected to Dropbox: "
-      puts "  #{account_info['display_name']} [#{account_info['email']}]"
+      puts "  #{account_info.display_name} [#{account_info.email}]"
       return client
     rescue StandardError => err
       puts "Error connecting to Dropbox account (#{err}). Try deleting the "\
