@@ -61,6 +61,17 @@ module Henchman
       end
     end
 
+    def clear type, value
+      raise "Invalid type #{type}" if !@cache[:ignore].keys.include? type
+      if @cache[:ignore][type].include? value
+        @cache[:ignore][type].delete value
+        puts "Deleting #{type} #{value} from cache"
+      else
+        puts "#{type} #{value} not found"
+      end
+      flush
+    end
+
   end
 
 end

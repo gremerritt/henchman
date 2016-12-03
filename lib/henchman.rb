@@ -72,5 +72,14 @@ module Henchman
         puts `tail -n #{options.n} #{File.expand_path('~/.henchman/stdout.log')}`
       end
     end
+
+    command :clear do |c|
+      c.syntax = 'henchman clear <artist/playlist> <title>'
+      c.description = 'Clears the the artist or playlist from the cache'
+      c.action do |args, options|
+        @cache = Henchman::Cache.new
+        @cache.clear args[0].to_sym, args[1..-1].join(' ')
+      end
+    end
   end
 end
